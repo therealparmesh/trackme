@@ -1,0 +1,10 @@
+included:
+  - trackme
+  - trackmeTests
+
+excluded:
+  - .derivedData-device
+  - .derivedData-trackme
+
+strict: true
+reporter: xcode

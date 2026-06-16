@@ -1,0 +1,22 @@
+.DS_Store
+
+# Xcode user state and generated build products
+DerivedData/
+.derivedData-*/
+build/
+*.xcarchive
+*.ipa
+*.dSYM
+*.dSYM.zip
+*.mobileprovision
+*.xcuserstate
+xcuserdata/
+
+# Generated distribution artifacts
+distribution/build/
+distribution/screenshots/
+
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved
