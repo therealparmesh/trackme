@@ -20,6 +20,8 @@
 		8FAE957AE0788F1C79D83D5B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7F50A7FFDE61C0FF67A4F7 /* SettingsView.swift */; };
 		93C619CC7FD61868BB0433A5 /* LiveRouteMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13180EEF65C99F09DAF7928B /* LiveRouteMap.swift */; };
 		99E4E6916B649AD05ECEA696 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9573FC4465D2A3BB0441CA29 /* InsightsView.swift */; };
+		A13D3E81C01D4E99A6F4E732 /* LocationTracker+CoreLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A13D3E80C01D4E99A6F4E732 /* LocationTracker+CoreLocation.swift */; };
+		A13D3E83C01D4E99A6F4E732 /* LocationTracker+Status.swift in Sources */ = {isa = PBXBuildFile; fileRef = A13D3E82C01D4E99A6F4E732 /* LocationTracker+Status.swift */; };
 		A876F3537C84E79D6A415E51 /* AppTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50709CAC5DE23FE87EEBE58B /* AppTab.swift */; };
 		B71989917B55B6B982B3BF5B /* TrackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35AB80661B7E5C813CD3E1A8 /* TrackView.swift */; };
 		B90B6C4AEE235CAA4658FEF0 /* LocationTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44ACD41C9D162DBB0D3F23BB /* LocationTracker.swift */; };
@@ -53,6 +55,8 @@
 		8A3E64160E586A265BACDF4C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9400A8660D5B38F6658D0830 /* trackme.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = trackme.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9573FC4465D2A3BB0441CA29 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
+		A13D3E80C01D4E99A6F4E732 /* LocationTracker+CoreLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LocationTracker+CoreLocation.swift"; sourceTree = "<group>"; };
+		A13D3E82C01D4E99A6F4E732 /* LocationTracker+Status.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LocationTracker+Status.swift"; sourceTree = "<group>"; };
 		B112E6F5C23CD7B22D2037DB /* WorkoutModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutModels.swift; sourceTree = "<group>"; };
 		B5F5A560B820E2E9AF9BA587 /* TrackmeCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackmeCoreTests.swift; sourceTree = "<group>"; };
 		C26883FE06FD17D1171B3035 /* trackme.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = trackme.entitlements; sourceTree = "<group>"; };
@@ -84,6 +88,8 @@
 			isa = PBXGroup;
 			children = (
 				4E29D36091886F154B3E8189 /* HealthKitService.swift */,
+				A13D3E80C01D4E99A6F4E732 /* LocationTracker+CoreLocation.swift */,
+				A13D3E82C01D4E99A6F4E732 /* LocationTracker+Status.swift */,
 				44ACD41C9D162DBB0D3F23BB /* LocationTracker.swift */,
 				ED8EDDC5918E1200F8BB05E4 /* WorkoutMetrics.swift */,
 			);
@@ -246,6 +252,8 @@
 				84FCF248DB63552E63B5BAF2 /* HealthKitService.swift in Sources */,
 				99E4E6916B649AD05ECEA696 /* InsightsView.swift in Sources */,
 				93C619CC7FD61868BB0433A5 /* LiveRouteMap.swift in Sources */,
+				A13D3E81C01D4E99A6F4E732 /* LocationTracker+CoreLocation.swift in Sources */,
+				A13D3E83C01D4E99A6F4E732 /* LocationTracker+Status.swift in Sources */,
 				B90B6C4AEE235CAA4658FEF0 /* LocationTracker.swift in Sources */,
 				DC31A3D00F85EC16E1A456BB /* RootView.swift in Sources */,
 				8FAE957AE0788F1C79D83D5B /* SettingsView.swift in Sources */,

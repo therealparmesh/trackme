@@ -127,23 +127,14 @@ struct InsightsView: View {
     }
 
     var body: some View {
-        ZStack {
-            TokyoTheme.background.ignoresSafeArea()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    ScreenHeader(
-                        title: "History",
-                        subtitle: "See your distance, time, and workouts over time."
-                    )
-                    rangePicker
-                    summary
-                    recentWorkouts
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 96)
-            }
+        TokyoScrollScreen(
+            title: "History",
+            subtitle: "See your distance, time, and workouts over time."
+        ) {
+            rangePicker
+            summary
+            recentWorkouts
         }
-        .toolbar(.hidden, for: .navigationBar)
     }
 
     private var rangePicker: some View {

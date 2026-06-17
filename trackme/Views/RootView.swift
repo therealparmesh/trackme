@@ -33,7 +33,7 @@ struct RootView: View {
         .environment(health)
         .task {
             guard !AppEnvironment.isRunningTests else { return }
-            await health.requestAccess()
+            await health.requestAccess(showsIncompleteMessage: false)
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {

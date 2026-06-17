@@ -6,23 +6,14 @@ struct SettingsView: View {
     @AppStorage(AppPreferenceKey.hapticControls) private var haptics = true
 
     var body: some View {
-        ZStack {
-            TokyoTheme.background.ignoresSafeArea()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    ScreenHeader(
-                        title: "Settings",
-                        subtitle: "Apple Health, feedback, and privacy."
-                    )
-                    healthCard
-                    preferences
-                    privacyCard
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 96)
-            }
+        TokyoScrollScreen(
+            title: "Settings",
+            subtitle: "Apple Health, feedback, and privacy."
+        ) {
+            healthCard
+            preferences
+            privacyCard
         }
-        .toolbar(.hidden, for: .navigationBar)
     }
 
     private var healthCard: some View {

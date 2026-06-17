@@ -2,6 +2,14 @@ import CoreLocation
 import Foundation
 import Observation
 
+enum LocationDisplayStatus: Equatable {
+    case locationNeeded, locationOff, finding, ready, live, paused, weakSignal, signalLost
+}
+
+enum GPSStatus: Equatable {
+    case finding, ready, weak, lost
+}
+
 @MainActor
 @Observable
 final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate {
@@ -11,15 +19,19 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         case paused
     }
 
-    private let manager = CLLocationManager()
-    private var lastAcceptedLocation: CLLocation?
-    private var startDate: Date?
+    let manager = CLLocationManager()
+    var lastAcceptedLocation: CLLocation?
+    var lastReadyLocation: CLLocation?
+    var lastRawLocationUpdateAt: Date?
+    var startDate: Date?
     private var pausedAt: Date?
     private var pausedDuration: TimeInterval = 0
     private var pauses: [WorkoutPause] = []
-    private var startsNewSegment = true
-    private var pendingStart = false
+    var startsNewSegment = true
+    var gpsStatus: GPSStatus = .finding
     @ObservationIgnored private var clockTask: Task<Void, Never>?
+    @ObservationIgnored private var signalTask: Task<Void, Never>?
+    @ObservationIgnored var readinessTask: Task<Void, Never>?
 
     var state: State = .idle
     var activity: ActivityKind = .walk
@@ -45,14 +57,42 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         return elapsed / (distance / 1_609.344)
     }
 
+    func prepareForWorkout() {
+        guard state == .idle else { return }
+
+        switch authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            errorMessage = nil
+            if !hasRecentReadyFix {
+                gpsStatus = .finding
+            }
+            beginLocationUpdatesIfAuthorized(background: false)
+        case .notDetermined:
+            gpsStatus = .finding
+        case .denied, .restricted:
+            gpsStatus = .lost
+            errorMessage = Self.locationAccessMessage
+        @unknown default:
+            gpsStatus = .finding
+            errorMessage = "Your location is temporarily unavailable. Try again in a moment."
+        }
+    }
+
     func start() {
         errorMessage = nil
         switch authorizationStatus {
         case .authorizedAlways, .authorizedWhenInUse:
+            guard isReadyToStart else {
+                prepareForWorkout()
+                return
+            }
+            guard hasRecentReadyFix else {
+                gpsStatus = .finding
+                prepareForWorkout()
+                return
+            }
             beginSession()
         case .notDetermined:
-            guard !pendingStart else { return }
-            pendingStart = true
             isRequestingAuthorization = true
             manager.requestWhenInUseAuthorization()
         case .denied, .restricted:
@@ -66,9 +106,11 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         clearSession()
         startDate = Date()
         state = .tracking
-
-        beginLocationUpdatesIfAuthorized()
+        gpsStatus = .finding
+        lastRawLocationUpdateAt = .now
+        beginLocationUpdatesIfAuthorized(background: true)
         startClock()
+        startSignalMonitor()
     }
 
     func pause() {
@@ -78,8 +120,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         state = .paused
         pausedAt = now
         lastAcceptedLocation = nil
-        clockTask?.cancel()
-        clockTask = nil
+        stopTimers()
         manager.stopUpdatingLocation()
     }
 
@@ -93,9 +134,12 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         }
         self.pausedAt = nil
         startsNewSegment = true
+        gpsStatus = .finding
+        lastRawLocationUpdateAt = .now
         state = .tracking
-        beginLocationUpdatesIfAuthorized()
+        beginLocationUpdatesIfAuthorized(background: true)
         startClock()
+        startSignalMonitor()
     }
 
     func stop() -> WorkoutSnapshot? {
@@ -108,8 +152,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         }
         updateElapsed(at: endDate)
         manager.stopUpdatingLocation()
-        clockTask?.cancel()
-        clockTask = nil
+        stopTimers()
 
         let path = WorkoutPathFilter.finalized(distance: distance, route: route)
         let elevationGain = ElevationGainCalculator.totalGain(from: path.route)
@@ -133,87 +176,6 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         errorMessage = nil
     }
 
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        authorizationStatus = manager.authorizationStatus
-        isRequestingAuthorization = false
-
-        if pendingStart {
-            pendingStart = false
-            if authorizationStatus == .authorizedAlways || authorizationStatus == .authorizedWhenInUse {
-                beginSession()
-            } else if authorizationStatus == .denied || authorizationStatus == .restricted {
-                errorMessage = Self.locationAccessMessage
-            }
-        } else if authorizationStatus == .authorizedAlways || authorizationStatus == .authorizedWhenInUse {
-            errorMessage = nil
-            if state == .tracking {
-                beginLocationUpdatesIfAuthorized()
-            }
-        } else if state == .tracking {
-            pause()
-            errorMessage = "Location access was turned off, so your workout is paused. "
-                + "Allow access in iPhone Settings to continue."
-        }
-    }
-
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard state == .tracking else { return }
-        for location in locations where isUsable(location) {
-            append(location)
-        }
-    }
-
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        guard let locationError = error as? CLError else {
-            errorMessage = "Your location could not be updated. Try again."
-            return
-        }
-        switch locationError.code {
-        case .locationUnknown:
-            return
-        case .denied:
-            errorMessage = Self.locationAccessMessage
-        case .network:
-            errorMessage = "Your location could not be updated. Check your connection and try again."
-        default:
-            errorMessage = "Your location could not be updated. Try again."
-        }
-    }
-
-    private func beginLocationUpdatesIfAuthorized() {
-        guard authorizationStatus == .authorizedAlways || authorizationStatus == .authorizedWhenInUse else {
-            if authorizationStatus == .denied || authorizationStatus == .restricted {
-                errorMessage = Self.locationAccessMessage
-            }
-            return
-        }
-        manager.allowsBackgroundLocationUpdates = true
-        manager.showsBackgroundLocationIndicator = true
-        manager.startUpdatingLocation()
-    }
-
-    private func isUsable(_ location: CLLocation) -> Bool {
-        guard let startDate else { return false }
-        return GPSPointFilter.shouldAccept(
-            location,
-            after: lastAcceptedLocation,
-            sessionStart: startDate
-        )
-    }
-
-    private func append(_ location: CLLocation) {
-        if let previous = lastAcceptedLocation {
-            distance += HorizontalDistanceCalculator.distance(
-                from: previous,
-                to: location
-            )
-        }
-
-        lastAcceptedLocation = location
-        route.append(RoutePoint(location: location, startsNewSegment: startsNewSegment))
-        startsNewSegment = false
-    }
-
     private func startClock() {
         clockTask?.cancel()
         clockTask = Task { [weak self] in
@@ -235,20 +197,47 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         elapsed = max(0, date.timeIntervalSince(startDate) - pausedDuration - activePause)
     }
 
+    private func startSignalMonitor() {
+        signalTask?.cancel()
+        signalTask = Task { [weak self] in
+            await self?.runSignalMonitor()
+        }
+    }
+
+    private func runSignalMonitor() async {
+        while !Task.isCancelled {
+            do {
+                try await Task.sleep(for: .seconds(5))
+            } catch {
+                return
+            }
+            refreshSignalTimeout()
+        }
+    }
+
     private func clearSession() {
-        clockTask?.cancel()
-        clockTask = nil
+        stopTimers()
         lastAcceptedLocation = nil
         startDate = nil
         pausedAt = nil
         pausedDuration = 0
         pauses = []
         startsNewSegment = true
+        lastRawLocationUpdateAt = nil
         elapsed = 0
         distance = 0
         route = []
     }
 
-    private static let locationAccessMessage =
+    private func stopTimers() {
+        clockTask?.cancel()
+        clockTask = nil
+        signalTask?.cancel()
+        signalTask = nil
+        readinessTask?.cancel()
+        readinessTask = nil
+    }
+
+    static let locationAccessMessage =
         "Location access is off. Allow it in iPhone Settings to map and measure your workout."
 }

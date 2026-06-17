@@ -5,6 +5,7 @@ import SwiftUI
 struct LiveRouteMap: View {
     @Binding var camera: MapCameraPosition
     let tracker: LocationTracker
+    let recenter: () -> Void
 
     var body: some View {
         Map(position: $camera, interactionModes: [.pan, .zoom]) {
@@ -77,7 +78,10 @@ struct LiveRouteMap: View {
                     Circle()
                         .fill(statusColor)
                         .frame(width: 7, height: 7)
-                        .shadow(color: tracker.state == .tracking ? TokyoTheme.magenta : .clear, radius: 7)
+                        .shadow(
+                            color: tracker.displayStatus == .live ? statusColor.opacity(0.7) : .clear,
+                            radius: 7
+                        )
                     Text(statusLabel)
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(TokyoTheme.primaryText)
@@ -111,32 +115,54 @@ struct LiveRouteMap: View {
     }
 
     private var statusLabel: String {
-        switch tracker.state {
-        case .idle: "READY"
-        case .tracking: "LIVE"
+        switch tracker.displayStatus {
+        case .locationNeeded: "LOCATION"
+        case .locationOff: "OFF"
+        case .finding: "FINDING"
+        case .ready: "READY"
+        case .live: "LIVE"
         case .paused: "PAUSED"
+        case .weakSignal: "WEAK GPS"
+        case .signalLost: "GPS LOST"
         }
     }
 
     private var statusDescription: String {
-        switch tracker.state {
-        case .idle: "Ready to \(tracker.activity.title.lowercased())"
-        case .tracking: "Tracking your \(tracker.activity.title.lowercased())"
-        case .paused: "\(tracker.activity.title) paused"
+        switch tracker.displayStatus {
+        case .locationNeeded:
+            return "Enable location to get ready"
+        case .locationOff:
+            return "Location access is off"
+        case .finding:
+            return "Finding GPS signal"
+        case .ready:
+            return "Ready to \(tracker.activity.title.lowercased())"
+        case .live:
+            return "Tracking your \(tracker.activity.title.lowercased())"
+        case .paused:
+            return "\(tracker.activity.title) paused"
+        case .weakSignal:
+            return "GPS signal is weak"
+        case .signalLost:
+            return "Waiting for GPS to return"
         }
     }
 
     private var statusColor: Color {
-        switch tracker.state {
-        case .idle: TokyoTheme.secondaryText
-        case .tracking: TokyoTheme.magenta
-        case .paused: TokyoTheme.violet
+        switch tracker.displayStatus {
+        case .locationNeeded, .locationOff:
+            return TokyoTheme.secondaryText
+        case .finding:
+            return TokyoTheme.violet
+        case .ready:
+            return TokyoTheme.cyan
+        case .live:
+            return TokyoTheme.magenta
+        case .paused:
+            return TokyoTheme.violet
+        case .weakSignal, .signalLost:
+            return TokyoTheme.amber
         }
     }
 
-    private func recenter() {
-        withAnimation(.easeInOut(duration: 0.35)) {
-            camera = .userLocation(followsHeading: false, fallback: .automatic)
-        }
-    }
 }

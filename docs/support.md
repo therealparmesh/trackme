@@ -10,7 +10,7 @@ trackme is built to keep walk and run tracking simple: start a workout, move, fi
 
 ## Getting Started
 
-Open trackme, choose a walk or run, and tap Start. The app uses location while a workout is active so it can show your route and summarize the session afterward.
+Open trackme, choose a walk or run, wait for the status to show READY, and tap Start. The app uses location while a workout is active so it can show your route and summarize the session afterward.
 
 You can pause, resume, finish, and delete workouts from the app. Saved workouts appear in History with simple summaries over time.
 
