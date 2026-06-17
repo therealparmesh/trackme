@@ -78,6 +78,27 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         }
     }
 
+    func requestStartupLocationAccess() {
+        guard state == .idle else { return }
+
+        switch authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            prepareForWorkout()
+        case .notDetermined:
+            guard !isRequestingAuthorization else { return }
+            errorMessage = nil
+            gpsStatus = .finding
+            isRequestingAuthorization = true
+            manager.requestWhenInUseAuthorization()
+        case .denied, .restricted:
+            gpsStatus = .lost
+            errorMessage = Self.locationAccessMessage
+        @unknown default:
+            gpsStatus = .finding
+            errorMessage = "Your location is temporarily unavailable. Try again in a moment."
+        }
+    }
+
     func start() {
         errorMessage = nil
         switch authorizationStatus {
@@ -93,8 +114,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
             }
             beginSession()
         case .notDetermined:
-            isRequestingAuthorization = true
-            manager.requestWhenInUseAuthorization()
+            requestStartupLocationAccess()
         case .denied, .restricted:
             errorMessage = Self.locationAccessMessage
         @unknown default:

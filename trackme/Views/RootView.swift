@@ -34,10 +34,12 @@ struct RootView: View {
         .task {
             guard !AppEnvironment.isRunningTests else { return }
             await health.requestAccess(showsIncompleteMessage: false)
+            tracker.requestStartupLocationAccess()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 health.refreshAuthorizationStatus()
+                tracker.prepareForWorkout()
             }
         }
     }
