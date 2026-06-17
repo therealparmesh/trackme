@@ -145,6 +145,19 @@ final class TrackmeCoreTests: XCTestCase {
     }
 
     @MainActor
+    func testHealthSyncSkipsZeroDistanceWorkout() async {
+        let client = FakeHealthStoreClient()
+        client.authorizationStatus = .sharingAuthorized
+        let health = HealthKitService(client: client)
+
+        let id = await health.save(snapshot(distance: 0))
+
+        XCTAssertNil(id)
+        XCTAssertEqual(client.savedWorkoutCount, 0)
+        XCTAssertNil(health.message)
+    }
+
+    @MainActor
     func testHealthSyncDeleteUsesWorkoutIdentifier() async {
         let client = FakeHealthStoreClient()
         client.authorizationStatus = .sharingAuthorized
@@ -274,13 +287,13 @@ final class TrackmeCoreTests: XCTestCase {
         )
     }
 
-    private func snapshot() -> WorkoutSnapshot {
+    private func snapshot(distance: Double = 100) -> WorkoutSnapshot {
         WorkoutSnapshot(
             activity: .walk,
             startDate: .now,
             endDate: .now.addingTimeInterval(60),
             duration: 60,
-            distance: 100,
+            distance: distance,
             elevationGain: 2,
             route: [],
             pauses: []

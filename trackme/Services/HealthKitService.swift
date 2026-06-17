@@ -74,10 +74,16 @@ final class LiveHealthStoreClient: HealthStoreClient {
 
     func deleteWorkout(id: UUID) async throws {
         guard let workout = try await workout(id: id) else { return }
+        let workoutPredicate = HKQuery.predicateForObjects(from: workout)
+        let distanceSamples = try await samples(
+            of: HKQuantityType(.distanceWalkingRunning),
+            predicate: workoutPredicate
+        )
         let routes = try await samples(
             of: HKSeriesType.workoutRoute(),
-            predicate: HKQuery.predicateForObjects(from: workout)
+            predicate: workoutPredicate
         )
+        try await delete(distanceSamples)
         try await delete(routes)
         try await delete([workout])
     }
@@ -191,6 +197,11 @@ final class HealthKitService {
 
     @discardableResult
     func save(_ snapshot: WorkoutSnapshot) async -> UUID? {
+        guard snapshot.distance > 0 else {
+            message = nil
+            return nil
+        }
+
         refreshAuthorizationStatus()
         guard isConnected else { return nil }
 
