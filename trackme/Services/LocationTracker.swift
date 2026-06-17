@@ -2,6 +2,24 @@ import CoreLocation
 import Foundation
 import Observation
 
+@MainActor
+protocol LocationManagerClient: AnyObject {
+    var authorizationStatus: CLAuthorizationStatus { get }
+    var delegate: CLLocationManagerDelegate? { get set }
+    var activityType: CLActivityType { get set }
+    var desiredAccuracy: CLLocationAccuracy { get set }
+    var distanceFilter: CLLocationDistance { get set }
+    var pausesLocationUpdatesAutomatically: Bool { get set }
+    var allowsBackgroundLocationUpdates: Bool { get set }
+    var showsBackgroundLocationIndicator: Bool { get set }
+
+    func requestWhenInUseAuthorization()
+    func startUpdatingLocation()
+    func stopUpdatingLocation()
+}
+
+extension CLLocationManager: LocationManagerClient {}
+
 enum LocationDisplayStatus: Equatable {
     case locationNeeded, locationOff, finding, ready, live, paused, weakSignal, signalLost
 }
@@ -19,7 +37,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         case paused
     }
 
-    let manager = CLLocationManager()
+    @ObservationIgnored let manager: LocationManagerClient
     var lastAcceptedLocation: CLLocation?
     var lastReadyLocation: CLLocation?
     var lastRawLocationUpdateAt: Date?
@@ -42,7 +60,8 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
     var isRequestingAuthorization = false
     var errorMessage: String?
 
-    override init() {
+    init(manager: LocationManagerClient = CLLocationManager()) {
+        self.manager = manager
         super.init()
         manager.delegate = self
         manager.activityType = .fitness

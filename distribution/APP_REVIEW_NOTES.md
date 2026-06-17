@@ -12,7 +12,7 @@ Review steps:
 
 HealthKit:
 
-HealthKit is used only to write user-authorized completed walking or running workouts, walking/running distance, and workout routes. The app does not read Health data and does not use Health data for advertising or data mining.
+HealthKit is used only to write user-authorized completed walking or running workouts, walking/running distance, and workout routes. If a synced workout is deleted from trackme, the matching Apple Health workout and route are deleted too. The app does not read Health data and does not use Health data for advertising or data mining.
 
 Background Location:
 

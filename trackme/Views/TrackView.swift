@@ -38,7 +38,7 @@ struct TrackView: View {
                 title: Text("Could not save workout"),
                 message: Text("Your workout was not saved. Try again or discard it."),
                 primaryButton: .default(Text("Try Again")) {
-                    Task { persist(alert.snapshot) }
+                    Task { await persist(alert.snapshot) }
                 },
                 secondaryButton: .destructive(Text("Discard"))
             )
@@ -221,23 +221,29 @@ struct TrackView: View {
         impact(.rigid)
         guard let snapshot = tracker.stop() else { return }
 
-        persist(snapshot)
+        Task {
+            await persist(snapshot)
+        }
     }
 
-    private func persist(_ snapshot: WorkoutSnapshot) {
+    private func persist(_ snapshot: WorkoutSnapshot) async {
+        let healthKitWorkoutID = autoSyncHealth ? await health.save(snapshot) : nil
         do {
-            modelContext.insert(try WorkoutRecord(snapshot: snapshot))
+            modelContext.insert(try WorkoutRecord(
+                snapshot: snapshot,
+                healthKitWorkoutID: healthKitWorkoutID
+            ))
             try modelContext.save()
         } catch {
+            if let healthKitWorkoutID {
+                await health.deleteWorkout(id: healthKitWorkoutID)
+            }
             modelContext.rollback()
             tracker.reset()
             saveAlert = SaveAlert(snapshot: snapshot)
             return
         }
         tracker.reset()
-        if autoSyncHealth {
-            Task { await health.save(snapshot) }
-        }
         onWorkoutSaved()
     }
 

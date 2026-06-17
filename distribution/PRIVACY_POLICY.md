@@ -27,7 +27,7 @@ Workout data may be shared with Apple only when you authorize Apple Health sync.
 
 ## Your choices
 
-You can change Location and Apple Health permissions in iPhone Settings or the Health app. You can delete workouts inside trackme.
+You can change Location and Apple Health permissions in iPhone Settings or the Health app. You can delete workouts inside trackme, including workouts synced to Apple Health.
 
 ## Children's privacy
 
