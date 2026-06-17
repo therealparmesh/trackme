@@ -45,6 +45,13 @@ Upload three iPhone screenshots in this order:
 2. History
 3. Settings
 
+## Pricing and Availability
+
+- Price: Free ($0.00)
+- Base country or region: United States (USD)
+- Distribution: Public App Store
+- Release option: Manually release after App Review approval
+
 ## URLs Required Before Submission
 
 - Support URL: https://therealparmesh.github.io/trackme/support
