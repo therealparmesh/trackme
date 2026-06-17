@@ -220,6 +220,11 @@ struct TrackView: View {
     private func saveWorkout() {
         impact(.rigid)
         guard let snapshot = tracker.stop() else { return }
+        guard snapshot.hasMeaningfulDistance else {
+            tracker.reset()
+            tracker.errorMessage = "Nothing to save yet. Move a little before finishing."
+            return
+        }
 
         Task {
             await persist(snapshot)

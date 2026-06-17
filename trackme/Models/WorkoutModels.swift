@@ -101,6 +101,10 @@ struct WorkoutSnapshot: Identifiable {
         guard distance > 0 else { return 0 }
         return duration / (distance / 1_609.344)
     }
+
+    var hasMeaningfulDistance: Bool {
+        distance > 0
+    }
 }
 
 @Model
