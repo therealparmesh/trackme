@@ -7,6 +7,7 @@ enum TokyoTheme {
     static let cyan = Color(red: 0.47, green: 1.00, blue: 0.88)
     static let magenta = Color(red: 1.00, green: 0.42, blue: 0.74)
     static let violet = Color(red: 0.62, green: 0.55, blue: 1.00)
+    static let amber = Color(red: 1.00, green: 0.74, blue: 0.33)
     static let primaryText = Color(red: 0.96, green: 0.97, blue: 1.00)
     static let secondaryText = Color(red: 0.57, green: 0.61, blue: 0.72)
 

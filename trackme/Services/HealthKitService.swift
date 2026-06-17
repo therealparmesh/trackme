@@ -26,7 +26,7 @@ final class HealthKitService {
         }
     }
 
-    func requestAccess() async {
+    func requestAccess(showsIncompleteMessage: Bool = true) async {
         guard !isWorking else { return }
         guard isAvailable else {
             message = "Apple Health is not available on this device."
@@ -40,9 +40,11 @@ final class HealthKitService {
         do {
             try await store.requestAuthorization(toShare: shareTypes, read: [])
             refreshAuthorizationStatus()
-            message = isConnected
-                ? nil
-                : "Some permissions are still off. Allow all requested access in the Health app to sync new workouts."
+            if isConnected {
+                message = nil
+            } else if showsIncompleteMessage {
+                message = "Allow all requested Health permissions to sync new workouts."
+            }
         } catch {
             message = "Apple Health could not be connected. Try again."
         }

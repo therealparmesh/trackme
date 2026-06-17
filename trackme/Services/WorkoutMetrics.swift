@@ -21,6 +21,9 @@ enum GPSPointFilter {
     private static let maximumHorizontalAccuracy: CLLocationAccuracy = 25
     private static let maximumSpeed: CLLocationSpeed = 12
     private static let minimumMovementSpeed: CLLocationSpeed = 0.35
+    private static let signalTimeout: TimeInterval = 20
+    static let readyFixLifetimeSeconds = 30
+    private static let maximumReadyFixAge = TimeInterval(readyFixLifetimeSeconds)
 
     static func shouldAccept(
         _ location: CLLocation,
@@ -47,6 +50,18 @@ enum GPSPointFilter {
         return !speedIsReliablyStationary
             && distance >= max(4, accuracyFloor)
             && distance / seconds < maximumSpeed
+    }
+
+    static func isReadyFix(_ location: CLLocation, now: Date = .now) -> Bool {
+        location.horizontalAccuracy >= 0
+            && location.horizontalAccuracy <= maximumHorizontalAccuracy
+            && location.timestamp >= now.addingTimeInterval(-maximumReadyFixAge)
+            && location.timestamp <= now.addingTimeInterval(5)
+    }
+
+    static func signalTimedOut(since lastUpdateAt: Date?, now: Date = .now) -> Bool {
+        guard let lastUpdateAt else { return true }
+        return now.timeIntervalSince(lastUpdateAt) > signalTimeout
     }
 }
 

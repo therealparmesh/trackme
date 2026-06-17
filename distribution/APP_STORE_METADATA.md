@@ -2,10 +2,11 @@
 
 ## Identity
 
-- App Store name: trackme: walk &amp; run
+- App Store name: trackme: walk & run
 - On-device name: trackme
 - Bundle ID: com.parmscript.trackme
 - Version: 1.0.0
+- Build: 2
 - Primary category: Health & Fitness
 - Subtitle: Walk and run tracker
 
@@ -22,15 +23,27 @@ Start a workout, follow your route on a clean live map, and finish with an easy 
 trackme keeps the experience focused:
 
 - Walk and run tracking
-- Live route map
+- Live 2D route map
 - Simple workout summaries
 - Recent history and trends
 - Apple Health support
 - Private, on-device workout history
 
+## What's New
+
+Initial release with walk and run tracking, a live route map, simple summaries, history, and Apple Health support.
+
 ## Keywords
 
 walk,run,GPS,route,mileage,pace,elevation,workout,fitness,tracker
+
+## Screenshots
+
+Upload three iPhone screenshots in this order:
+
+1. Track
+2. History
+3. Settings
 
 ## URLs Required Before Submission
 
@@ -40,6 +53,6 @@ walk,run,GPS,route,mileage,pace,elevation,workout,fitness,tracker
 
 ## App Privacy Answer
 
-Data Not Collected, based on version 1.0.0 having no developer backend, analytics, advertising, or third-party SDKs. Workouts remain on the device, with optional user-authorized writes to Apple Health.
+Data Not Collected, based on version 1.0.0 having no developer backend, analytics, advertising, or third-party SDKs. Workout and route history remain on the device. If the user enables Apple Health, trackme writes completed workouts, distance, and routes to Apple Health.
 
 Re-evaluate this answer before every submission if networking, analytics, crash reporting, advertising, accounts, or cloud sync are added.

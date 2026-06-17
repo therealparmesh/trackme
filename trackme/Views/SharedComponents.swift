@@ -18,6 +18,30 @@ struct ScreenHeader: View {
     }
 }
 
+struct TokyoScrollScreen<Content: View>: View {
+    let title: String
+    let subtitle: String
+    var bottomPadding: CGFloat = 20
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        ZStack {
+            TokyoTheme.background.ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    ScreenHeader(title: title, subtitle: subtitle)
+                    content
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, bottomPadding)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .toolbar(.hidden, for: .navigationBar)
+    }
+}
+
 struct SectionTitle: View {
     let title: String
 

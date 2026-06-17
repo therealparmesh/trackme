@@ -25,7 +25,7 @@ struct TrackView: View {
 
             GeometryReader { proxy in
                 VStack(spacing: 0) {
-                    LiveRouteMap(camera: $camera, tracker: tracker)
+                    LiveRouteMap(camera: $camera, tracker: tracker, recenter: recenterMap)
                         .frame(height: mapHeight(for: proxy.size.height))
 
                     trackingPanel
@@ -46,9 +46,17 @@ struct TrackView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 recenterMap()
+                tracker.prepareForWorkout()
             }
         }
-        .onAppear(perform: recenterMap)
+        .onChange(of: tracker.gpsStatus) { _, status in
+            guard status == .ready, tracker.state == .idle else { return }
+            recenterMap()
+        }
+        .onAppear {
+            recenterMap()
+            tracker.prepareForWorkout()
+        }
     }
 
     private var trackingPanel: some View {
@@ -131,25 +139,14 @@ struct TrackView: View {
     private var controls: some View {
         switch tracker.state {
         case .idle:
-            Button(action: startWorkout) {
-                HStack(spacing: 10) {
-                    if tracker.isRequestingAuthorization {
-                        ProgressView()
-                            .tint(TokyoTheme.background)
-                    } else {
-                        Image(systemName: tracker.activity.systemImage)
-                    }
-                    Text(tracker.isRequestingAuthorization ? "Getting location..." : "Start \(tracker.activity.title)")
-                }
-                .font(.headline)
-                .foregroundStyle(TokyoTheme.background)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 17)
-                .background(TokyoTheme.cyan)
-                .clipShape(Capsule())
-            }
-            .disabled(tracker.isRequestingAuthorization)
-            .accessibilityIdentifier("start-workout")
+            StartWorkoutButton(
+                activity: tracker.activity,
+                authorizationStatus: tracker.authorizationStatus,
+                displayStatus: tracker.displayStatus,
+                isReadyToStart: tracker.isReadyToStart,
+                isRequestingAuthorization: tracker.isRequestingAuthorization,
+                action: startWorkout
+            )
 
         case .tracking, .paused:
             HStack(spacing: 10) {
@@ -187,10 +184,26 @@ struct TrackView: View {
     }
 
     private func recenterMap() {
-        camera = .userLocation(followsHeading: false, fallback: .automatic)
+        let position: MapCameraPosition
+        if let location = tracker.mapFocusLocation {
+            position = .region(
+                MKCoordinateRegion(
+                    center: location.coordinate,
+                    latitudinalMeters: 750,
+                    longitudinalMeters: 750
+                )
+            )
+        } else {
+            position = .userLocation(followsHeading: false, fallback: .automatic)
+        }
+
+        withAnimation(.easeInOut(duration: 0.3)) {
+            camera = position
+        }
     }
 
     private func startWorkout() {
+        guard tracker.authorizationStatus == .notDetermined || tracker.isReadyToStart else { return }
         impact(.medium)
         tracker.start()
     }
@@ -242,6 +255,98 @@ struct TrackView: View {
 private struct SaveAlert: Identifiable {
     let id = UUID()
     let snapshot: WorkoutSnapshot
+}
+
+private struct StartWorkoutButton: View {
+    let activity: ActivityKind
+    let authorizationStatus: CLAuthorizationStatus
+    let displayStatus: LocationDisplayStatus
+    let isReadyToStart: Bool
+    let isRequestingAuthorization: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                if isRequestingAuthorization {
+                    ProgressView()
+                        .tint(TokyoTheme.background)
+                } else {
+                    Image(systemName: imageName)
+                }
+                Text(title)
+            }
+            .font(.headline)
+            .foregroundStyle(foreground)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 17)
+            .background(background)
+            .clipShape(Capsule())
+        }
+        .disabled(isDisabled)
+        .accessibilityIdentifier("start-workout")
+    }
+
+    private var title: String {
+        if isRequestingAuthorization {
+            return "Getting location..."
+        }
+        switch displayStatus {
+        case .locationNeeded:
+            return "Enable Location"
+        case .locationOff:
+            return "Location Off"
+        case .finding:
+            return "Finding GPS..."
+        case .ready:
+            return "Start \(activity.title)"
+        case .weakSignal:
+            return "Waiting for GPS..."
+        case .signalLost:
+            return "GPS Signal Lost"
+        case .live, .paused:
+            return "Start \(activity.title)"
+        }
+    }
+
+    private var imageName: String {
+        switch displayStatus {
+        case .locationNeeded, .locationOff, .finding, .weakSignal, .signalLost:
+            return "location.fill"
+        case .ready, .live, .paused:
+            return activity.systemImage
+        }
+    }
+
+    private var background: Color {
+        if authorizationStatus == .notDetermined || isReadyToStart {
+            return TokyoTheme.cyan
+        }
+        if displayStatus == .weakSignal || displayStatus == .signalLost {
+            return TokyoTheme.amber.opacity(0.20)
+        }
+        return TokyoTheme.raised
+    }
+
+    private var foreground: Color {
+        if authorizationStatus == .notDetermined || isReadyToStart {
+            return TokyoTheme.background
+        }
+        if displayStatus == .weakSignal || displayStatus == .signalLost {
+            return TokyoTheme.amber
+        }
+        return TokyoTheme.secondaryText
+    }
+
+    private var isDisabled: Bool {
+        if isRequestingAuthorization {
+            return true
+        }
+        if authorizationStatus == .notDetermined {
+            return false
+        }
+        return !isReadyToStart
+    }
 }
 
 private struct LocationErrorBanner: View {

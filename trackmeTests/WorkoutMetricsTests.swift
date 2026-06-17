@@ -94,6 +94,38 @@ final class WorkoutMetricsTests: XCTestCase {
         )
     }
 
+    func testReadyFixRequiresRecentAccurateLocation() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let recent = location(latitude: 41, timestamp: now.addingTimeInterval(-2))
+        let stale = location(latitude: 41, timestamp: now.addingTimeInterval(-40))
+        let inaccurate = location(
+            latitude: 41,
+            horizontalAccuracy: 50,
+            timestamp: now.addingTimeInterval(-2)
+        )
+
+        XCTAssertTrue(GPSPointFilter.isReadyFix(recent, now: now))
+        XCTAssertFalse(GPSPointFilter.isReadyFix(stale, now: now))
+        XCTAssertFalse(GPSPointFilter.isReadyFix(inaccurate, now: now))
+    }
+
+    func testSignalTimeoutStartsANewTrustWindow() {
+        let now = Date(timeIntervalSince1970: 1_000)
+
+        XCTAssertFalse(
+            GPSPointFilter.signalTimedOut(
+                since: now.addingTimeInterval(-10),
+                now: now
+            )
+        )
+        XCTAssertTrue(
+            GPSPointFilter.signalTimedOut(
+                since: now.addingTimeInterval(-25),
+                now: now
+            )
+        )
+    }
+
     func testTinyGPSOnlyWorkoutFinalizesAtZero() {
         let route = [
             routePoint(latitude: 41, startsNewSegment: true),
