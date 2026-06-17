@@ -21,4 +21,4 @@ Background location updates are enabled only while a workout is actively recordi
 
 ## Payments
 
-Version 1.0.0 has no purchases, subscriptions, paywall, or account system.
+Version 1.0 has no purchases, subscriptions, paywall, or account system.
