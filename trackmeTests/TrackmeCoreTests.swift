@@ -45,6 +45,11 @@ final class TrackmeCoreTests: XCTestCase {
         XCTAssertEqual(snapshot.averagePace, 600, accuracy: 0.001)
     }
 
+    func testZeroDistanceSnapshotIsNotMeaningful() {
+        XCTAssertFalse(snapshot(distance: 0).hasMeaningfulDistance)
+        XCTAssertTrue(snapshot(distance: 25).hasMeaningfulDistance)
+    }
+
     @MainActor
     func testStartupLocationAccessRequestsPermissionGreedily() {
         let manager = FakeLocationManager()

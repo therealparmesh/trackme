@@ -197,7 +197,7 @@ final class HealthKitService {
 
     @discardableResult
     func save(_ snapshot: WorkoutSnapshot) async -> UUID? {
-        guard snapshot.distance > 0 else {
+        guard snapshot.hasMeaningfulDistance else {
             message = nil
             return nil
         }
