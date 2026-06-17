@@ -2,7 +2,7 @@ trackme records outdoor walks and runs using Core Location. No account or login 
 
 Review steps:
 
-1. Launch the app. Apple Health write access is requested on startup.
+1. Launch the app. Apple Health and Location access are requested on startup.
 2. On Track, choose Walk or Run.
 3. If prompted, enable Location access.
 4. Wait for the status to show READY, then tap Start.
