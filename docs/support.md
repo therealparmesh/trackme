@@ -16,7 +16,7 @@ You can pause, resume, finish, and delete workouts from the app. Saved workouts 
 
 ## Apple Health
 
-trackme can write completed workouts to Apple Health when permission is granted. If you delete a synced workout in trackme, the matching Apple Health workout is removed too. You can manage Health permissions in iPhone Settings or the Health app.
+trackme can write completed workouts to Apple Health when permission is granted. If you delete a synced workout in trackme, the matching Apple Health workout, distance, and route are removed too. You can manage Health permissions in iPhone Settings or the Health app.
 
 ## Location
 
