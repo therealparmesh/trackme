@@ -111,15 +111,17 @@ final class WorkoutRecord {
     var duration: TimeInterval
     var distance: Double
     var elevationGain: Double
+    var healthKitWorkoutUUIDString: String?
     @Attribute(.externalStorage) var routeData: Data
 
-    init(snapshot: WorkoutSnapshot) throws {
+    init(snapshot: WorkoutSnapshot, healthKitWorkoutID: UUID? = nil) throws {
         id = UUID()
         activityRawValue = snapshot.activity.rawValue
         startDate = snapshot.startDate
         duration = snapshot.duration
         distance = snapshot.distance
         elevationGain = snapshot.elevationGain
+        healthKitWorkoutUUIDString = healthKitWorkoutID?.uuidString
         routeData = try JSONEncoder().encode(snapshot.route)
     }
 
@@ -139,5 +141,14 @@ final class WorkoutRecord {
     var averagePace: TimeInterval {
         guard distance > 0 else { return 0 }
         return duration / (distance / 1_609.344)
+    }
+
+    var healthKitWorkoutID: UUID? {
+        get {
+            healthKitWorkoutUUIDString.flatMap(UUID.init(uuidString:))
+        }
+        set {
+            healthKitWorkoutUUIDString = newValue?.uuidString
+        }
     }
 }

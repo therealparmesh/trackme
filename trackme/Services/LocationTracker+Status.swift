@@ -32,7 +32,11 @@ extension LocationTracker {
     }
 
     var mapFocusLocation: CLLocation? {
-        lastAcceptedLocation ?? lastReadyLocation
+        if let lastAcceptedLocation {
+            return lastAcceptedLocation
+        }
+        guard hasRecentReadyFix else { return nil }
+        return lastReadyLocation
     }
 
     var hasRecentReadyFix: Bool {
