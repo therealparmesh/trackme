@@ -215,6 +215,16 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         errorMessage = nil
     }
 
+    func discard() {
+        manager.stopUpdatingLocation()
+        state = .idle
+        clearSession()
+        errorMessage = nil
+        if isAuthorized {
+            gpsStatus = hasRecentReadyFix ? .ready : .finding
+        }
+    }
+
     private func startClock() {
         clockTask?.cancel()
         clockTask = Task { [weak self] in

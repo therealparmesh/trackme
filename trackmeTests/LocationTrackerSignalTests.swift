@@ -57,6 +57,45 @@ final class LocationTrackerSignalTests: XCTestCase {
         XCTAssertEqual(tracker.route.routeSegments.count, 1)
     }
 
+    func testTooShortWorkoutCanBeDetectedWithoutStopping() {
+        let sessionStart = Date(timeIntervalSince1970: 1_000)
+        let manager = SignalTestLocationManager()
+        manager.authorizationStatus = .authorizedWhenInUse
+        let tracker = LocationTracker(manager: manager)
+        tracker.authorizationStatus = .authorizedWhenInUse
+        tracker.state = .tracking
+        tracker.startDate = sessionStart
+        tracker.distance = 12
+
+        XCTAssertFalse(tracker.hasMeaningfulWorkout)
+        XCTAssertEqual(tracker.state, .tracking)
+        XCTAssertNotNil(tracker.startDate)
+    }
+
+    func testDiscardStopsAndClearsActiveWorkout() {
+        let sessionStart = Date(timeIntervalSince1970: 1_000)
+        let manager = SignalTestLocationManager()
+        manager.authorizationStatus = .authorizedWhenInUse
+        let tracker = LocationTracker(manager: manager)
+        tracker.authorizationStatus = .authorizedWhenInUse
+        tracker.state = .tracking
+        tracker.startDate = sessionStart
+        tracker.elapsed = 30
+        tracker.distance = 12
+        tracker.errorMessage = "Temporary"
+        tracker.route = [RoutePoint(location: location(latitude: 41, timestamp: sessionStart), startsNewSegment: true)]
+
+        tracker.discard()
+
+        XCTAssertEqual(tracker.state, .idle)
+        XCTAssertNil(tracker.startDate)
+        XCTAssertEqual(tracker.elapsed, 0)
+        XCTAssertEqual(tracker.distance, 0)
+        XCTAssertTrue(tracker.route.isEmpty)
+        XCTAssertNil(tracker.errorMessage)
+        XCTAssertEqual(manager.stopUpdatingLocationCalls, 1)
+    }
+
     private func location(
         latitude: Double,
         horizontalAccuracy: CLLocationAccuracy = 5,
@@ -87,10 +126,13 @@ private final class SignalTestLocationManager: LocationManagerClient {
     var allowsBackgroundLocationUpdates = false
     var showsBackgroundLocationIndicator = false
     var startUpdatingLocationCalls = 0
+    var stopUpdatingLocationCalls = 0
 
     func requestWhenInUseAuthorization() {}
     func startUpdatingLocation() {
         startUpdatingLocationCalls += 1
     }
-    func stopUpdatingLocation() {}
+    func stopUpdatingLocation() {
+        stopUpdatingLocationCalls += 1
+    }
 }

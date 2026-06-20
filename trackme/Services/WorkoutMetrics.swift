@@ -69,11 +69,15 @@ enum GPSPointFilter {
 enum WorkoutPathFilter {
     private static let minimumMeaningfulDistance: CLLocationDistance = 20
 
+    static func isMeaningful(distance: CLLocationDistance) -> Bool {
+        distance >= minimumMeaningfulDistance
+    }
+
     static func finalized(
         distance: CLLocationDistance,
         route: [RoutePoint]
     ) -> (distance: CLLocationDistance, route: [RoutePoint]) {
-        guard distance >= minimumMeaningfulDistance else {
+        guard isMeaningful(distance: distance) else {
             return (0, [])
         }
         return (distance, route)

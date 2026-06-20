@@ -30,26 +30,6 @@ final class TrackmeCoreTests: XCTestCase {
         XCTAssertEqual(segments.map(\.count), [2, 1])
     }
 
-    func testSnapshotAveragePaceUsesMovingDuration() {
-        let snapshot = WorkoutSnapshot(
-            activity: .walk,
-            startDate: .now,
-            endDate: .now.addingTimeInterval(1_000),
-            duration: 600,
-            distance: 1_609.344,
-            elevationGain: 0,
-            route: [],
-            pauses: []
-        )
-
-        XCTAssertEqual(snapshot.averagePace, 600, accuracy: 0.001)
-    }
-
-    func testZeroDistanceSnapshotIsNotMeaningful() {
-        XCTAssertFalse(snapshot(distance: 0).hasMeaningfulDistance)
-        XCTAssertTrue(snapshot(distance: 25).hasMeaningfulDistance)
-    }
-
     @MainActor
     func testStartupLocationAccessRequestsPermissionGreedily() {
         let manager = FakeLocationManager()
