@@ -13,6 +13,7 @@ struct TrackView: View {
     @AppStorage(AppPreferenceKey.hapticControls) private var hapticControls = true
     let onWorkoutSaved: () -> Void
     @State private var camera: MapCameraPosition = .userLocation(followsHeading: false, fallback: .automatic)
+    @State private var mapFollowsUser = true
     @State private var saveAlert: SaveAlert?
 
     private var canOpenLocationSettings: Bool {
@@ -51,7 +52,19 @@ struct TrackView: View {
         }
         .onChange(of: tracker.gpsStatus) { _, status in
             guard status == .ready, tracker.state == .idle else { return }
+            followMapIfNeeded()
+        }
+        .onChange(of: tracker.route.count) {
+            followMapIfNeeded()
+        }
+        .onChange(of: tracker.state) { oldState, state in
+            guard oldState != .tracking, state == .tracking else { return }
             recenterMap()
+        }
+        .onChange(of: camera.positionedByUser) {
+            if camera.positionedByUser {
+                mapFollowsUser = false
+            }
         }
         .onAppear {
             recenterMap()
@@ -184,21 +197,18 @@ struct TrackView: View {
     }
 
     private func recenterMap() {
-        let position: MapCameraPosition
-        if let location = tracker.mapFocusLocation {
-            position = .region(
-                MKCoordinateRegion(
-                    center: location.coordinate,
-                    latitudinalMeters: 750,
-                    longitudinalMeters: 750
-                )
-            )
-        } else {
-            position = .userLocation(followsHeading: false, fallback: .automatic)
-        }
+        mapFollowsUser = true
+        moveMapToCurrentFocus()
+    }
 
+    private func followMapIfNeeded() {
+        guard mapFollowsUser else { return }
+        moveMapToCurrentFocus()
+    }
+
+    private func moveMapToCurrentFocus() {
         withAnimation(.easeInOut(duration: 0.3)) {
-            camera = position
+            camera = TrackMapCamera.position(focusing: tracker.mapFocusLocation)
         }
     }
 
