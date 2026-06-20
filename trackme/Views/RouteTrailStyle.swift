@@ -4,22 +4,20 @@ import SwiftUI
 struct RouteTrailLine: Identifiable {
     let id: Int
     let coordinates: [CLLocationCoordinate2D]
-    let totalLines: Int
 
     var color: Color {
-        let progress = totalLines <= 1 ? 0 : Double(id) / Double(totalLines - 1)
-        let hue = (0.52 + progress * 0.58).truncatingRemainder(dividingBy: 1)
-        return Color(hue: hue, saturation: 0.72, brightness: 1)
+        RouteTrailStyle.color
     }
 }
 
 enum RouteTrailStyle {
+    static let color = TokyoTheme.cyan
     private static let maximumLines = 160
 
     static func lines(from route: [RoutePoint]) -> [RouteTrailLine] {
         let chunks = coordinateChunks(from: route)
         return chunks.enumerated().map { index, coordinates in
-            RouteTrailLine(id: index, coordinates: coordinates, totalLines: chunks.count)
+            RouteTrailLine(id: index, coordinates: coordinates)
         }
     }
 

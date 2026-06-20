@@ -12,8 +12,8 @@ struct LiveRouteMap: View {
             ForEach(RouteTrailStyle.lines(from: tracker.route)) { line in
                 MapPolyline(coordinates: line.coordinates)
                     .stroke(
-                        line.color.opacity(0.20),
-                        style: StrokeStyle(lineWidth: 12, lineCap: .round, lineJoin: .round)
+                        line.color.opacity(0.18),
+                        style: StrokeStyle(lineWidth: 16, lineCap: .round, lineJoin: .round)
                     )
                 MapPolyline(coordinates: line.coordinates)
                     .stroke(

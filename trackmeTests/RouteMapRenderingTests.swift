@@ -3,7 +3,7 @@ import XCTest
 @testable import trackme
 
 final class RouteMapRenderingTests: XCTestCase {
-    func testRainbowTrailDoesNotConnectSeparateRouteSegments() throws {
+    func testRouteTrailDoesNotConnectSeparateRouteSegments() throws {
         let route = [
             routePoint(latitude: 41, startsNewSegment: true),
             routePoint(latitude: 41.001, startsNewSegment: false),
@@ -28,13 +28,24 @@ final class RouteMapRenderingTests: XCTestCase {
             routePoint(latitude: 41.01, longitude: -87, startsNewSegment: false)
         ]
 
-        let position = RouteMapCamera.position(fitting: route)
-        let region = try XCTUnwrap(position.region)
+        let region = RouteMapCamera.region(fitting: route)
 
         XCTAssertEqual(region.center.latitude, 41.005, accuracy: 0.000_001)
         XCTAssertEqual(region.center.longitude, -87.005, accuracy: 0.000_001)
         XCTAssertGreaterThan(region.span.latitudeDelta, 0.01)
         XCTAssertGreaterThan(region.span.longitudeDelta, 0.01)
+    }
+
+    func testRouteMapCameraKeepsShortRoutesTight() {
+        let route = [
+            routePoint(latitude: 41, startsNewSegment: true),
+            routePoint(latitude: 41.000_4, startsNewSegment: false)
+        ]
+
+        let region = RouteMapCamera.region(fitting: route)
+
+        XCTAssertLessThan(region.span.latitudeDelta, 0.002)
+        XCTAssertLessThan(region.span.longitudeDelta, 0.002)
     }
 
     private func routePoint(
