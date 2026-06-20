@@ -138,6 +138,11 @@ final class WorkoutMetricsTests: XCTestCase {
         XCTAssertTrue(result.route.isEmpty)
     }
 
+    func testMeaningfulWorkoutThreshold() {
+        XCTAssertFalse(WorkoutPathFilter.isMeaningful(distance: 19.99))
+        XCTAssertTrue(WorkoutPathFilter.isMeaningful(distance: 20))
+    }
+
     func testMeaningfulWorkoutKeepsDistanceAndRoute() {
         let route = [
             routePoint(latitude: 41, startsNewSegment: true),

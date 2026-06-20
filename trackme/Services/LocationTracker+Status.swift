@@ -5,6 +5,10 @@ extension LocationTracker {
         state == .idle && isAuthorized && gpsStatus == .ready && lastReadyLocation != nil && !isRequestingAuthorization
     }
 
+    var hasMeaningfulWorkout: Bool {
+        WorkoutPathFilter.isMeaningful(distance: distance)
+    }
+
     var displayStatus: LocationDisplayStatus {
         if isRequestingAuthorization {
             return .finding

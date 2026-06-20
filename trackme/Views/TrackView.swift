@@ -14,7 +14,7 @@ struct TrackView: View {
     let onWorkoutSaved: () -> Void
     @State private var camera: MapCameraPosition = .userLocation(followsHeading: false, fallback: .automatic)
     @State private var mapFollowsUser = true
-    @State private var saveAlert: SaveAlert?
+    @State private var trackAlert: TrackAlert?
 
     private var canOpenLocationSettings: Bool {
         tracker.authorizationStatus == .denied || tracker.authorizationStatus == .restricted
@@ -34,16 +34,7 @@ struct TrackView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .alert(item: $saveAlert) { alert in
-            Alert(
-                title: Text("Could not save workout"),
-                message: Text("Your workout was not saved. Try again or discard it."),
-                primaryButton: .default(Text("Try Again")) {
-                    Task { await persist(alert.snapshot) }
-                },
-                secondaryButton: .destructive(Text("Discard"))
-            )
-        }
+        .alert(item: $trackAlert, content: alert)
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 recenterMap()
@@ -190,7 +181,9 @@ struct TrackView: View {
             }
         }
     }
+}
 
+private extension TrackView {
     private func mapHeight(for availableHeight: CGFloat) -> CGFloat {
         let panelHeight: CGFloat = tracker.errorMessage == nil ? 320 : 374
         return min(410, max(250, availableHeight - panelHeight))
@@ -229,12 +222,12 @@ struct TrackView: View {
 
     private func saveWorkout() {
         impact(.rigid)
-        guard let snapshot = tracker.stop() else { return }
-        guard snapshot.hasMeaningfulDistance else {
-            tracker.reset()
-            tracker.errorMessage = "Nothing to save yet. Move a little before finishing."
+        guard tracker.hasMeaningfulWorkout else {
+            trackAlert = .tooShortToSave
             return
         }
+
+        guard let snapshot = tracker.stop() else { return }
 
         Task {
             await persist(snapshot)
@@ -255,11 +248,18 @@ struct TrackView: View {
             }
             modelContext.rollback()
             tracker.reset()
-            saveAlert = SaveAlert(snapshot: snapshot)
+            trackAlert = .saveFailure(snapshot)
             return
         }
         tracker.reset()
         onWorkoutSaved()
+    }
+
+    private func discardWorkout() {
+        impact(.light)
+        tracker.discard()
+        tracker.prepareForWorkout()
+        recenterMap()
     }
 
     private func openLocationSettings() {
@@ -267,128 +267,29 @@ struct TrackView: View {
         openURL(url)
     }
 
+    private func alert(for alert: TrackAlert) -> Alert {
+        switch alert {
+        case .tooShortToSave:
+            Alert(
+                title: Text("Nothing to save yet"),
+                message: Text("Move a little more to save this workout, or discard it."),
+                primaryButton: .default(Text("Keep recording")),
+                secondaryButton: .destructive(Text("Discard workout"), action: discardWorkout)
+            )
+        case .saveFailure(let snapshot):
+            Alert(
+                title: Text("Could not save workout"),
+                message: Text("Your workout was not saved. Try again or discard it."),
+                primaryButton: .default(Text("Try again")) {
+                    Task { await persist(snapshot) }
+                },
+                secondaryButton: .destructive(Text("Discard workout"))
+            )
+        }
+    }
+
     private func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
         guard hapticControls else { return }
         UIImpactFeedbackGenerator(style: style).impactOccurred()
-    }
-}
-
-private struct SaveAlert: Identifiable {
-    let id = UUID()
-    let snapshot: WorkoutSnapshot
-}
-
-private struct StartWorkoutButton: View {
-    let activity: ActivityKind
-    let authorizationStatus: CLAuthorizationStatus
-    let displayStatus: LocationDisplayStatus
-    let isReadyToStart: Bool
-    let isRequestingAuthorization: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                if isRequestingAuthorization {
-                    ProgressView()
-                        .tint(TokyoTheme.background)
-                } else {
-                    Image(systemName: imageName)
-                }
-                Text(title)
-            }
-            .font(.headline)
-            .foregroundStyle(foreground)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 17)
-            .background(background)
-            .clipShape(Capsule())
-        }
-        .disabled(isDisabled)
-        .accessibilityIdentifier("start-workout")
-    }
-
-    private var title: String {
-        if isRequestingAuthorization {
-            return "Getting location..."
-        }
-        switch displayStatus {
-        case .locationNeeded:
-            return "Enable Location"
-        case .locationOff:
-            return "Location Off"
-        case .finding:
-            return "Finding GPS..."
-        case .ready:
-            return "Start \(activity.title)"
-        case .weakSignal:
-            return "Waiting for GPS..."
-        case .signalLost:
-            return "GPS Signal Lost"
-        case .live, .paused:
-            return "Start \(activity.title)"
-        }
-    }
-
-    private var imageName: String {
-        switch displayStatus {
-        case .locationNeeded, .locationOff, .finding, .weakSignal, .signalLost:
-            return "location.fill"
-        case .ready, .live, .paused:
-            return activity.systemImage
-        }
-    }
-
-    private var background: Color {
-        if authorizationStatus == .notDetermined || isReadyToStart {
-            return TokyoTheme.cyan
-        }
-        if displayStatus == .weakSignal || displayStatus == .signalLost {
-            return TokyoTheme.amber.opacity(0.20)
-        }
-        return TokyoTheme.raised
-    }
-
-    private var foreground: Color {
-        if authorizationStatus == .notDetermined || isReadyToStart {
-            return TokyoTheme.background
-        }
-        if displayStatus == .weakSignal || displayStatus == .signalLost {
-            return TokyoTheme.amber
-        }
-        return TokyoTheme.secondaryText
-    }
-
-    private var isDisabled: Bool {
-        if isRequestingAuthorization {
-            return true
-        }
-        if authorizationStatus == .notDetermined {
-            return false
-        }
-        return !isReadyToStart
-    }
-}
-
-private struct LocationErrorBanner: View {
-    let message: String
-    let showsSettingsButton: Bool
-    let openSettings: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label(message, systemImage: "exclamationmark.circle.fill")
-                .font(.caption)
-
-            if showsSettingsButton {
-                Button("Open iPhone Settings", systemImage: "arrow.up.right.square", action: openSettings)
-                    .font(.caption.weight(.semibold))
-            }
-        }
-        .foregroundStyle(TokyoTheme.magenta)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(TokyoTheme.magenta.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }

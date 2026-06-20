@@ -103,7 +103,7 @@ struct WorkoutSnapshot: Identifiable {
     }
 
     var hasMeaningfulDistance: Bool {
-        distance > 0
+        WorkoutPathFilter.isMeaningful(distance: distance)
     }
 }
 
