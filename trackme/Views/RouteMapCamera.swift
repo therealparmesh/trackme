@@ -2,44 +2,46 @@ import MapKit
 import SwiftUI
 
 enum RouteMapCamera {
-    private static let minimumSpan = 0.005
-    private static let paddingMultiplier = 1.45
+    private static let minimumMapSizeMeters: CLLocationDistance = 90
+    private static let paddingRatio = 0.10
 
     static func position(fitting route: [RoutePoint]) -> MapCameraPosition {
-        guard let first = route.first else { return .automatic }
+        guard !route.isEmpty else { return .automatic }
+        return .region(region(fitting: route))
+    }
 
-        let bounds = route.reduce(
-            (
-                minimumLatitude: first.latitude,
-                maximumLatitude: first.latitude,
-                minimumLongitude: first.longitude,
-                maximumLongitude: first.longitude
-            )
-        ) { bounds, point in
-            (
-                minimumLatitude: min(bounds.minimumLatitude, point.latitude),
-                maximumLatitude: max(bounds.maximumLatitude, point.latitude),
-                minimumLongitude: min(bounds.minimumLongitude, point.longitude),
-                maximumLongitude: max(bounds.maximumLongitude, point.longitude)
+    static func region(fitting route: [RoutePoint]) -> MKCoordinateRegion {
+        guard let first = route.first else {
+            return MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                span: MKCoordinateSpan(latitudeDelta: 1, longitudeDelta: 1)
             )
         }
 
-        let center = CLLocationCoordinate2D(
-            latitude: (bounds.minimumLatitude + bounds.maximumLatitude) / 2,
-            longitude: (bounds.minimumLongitude + bounds.maximumLongitude) / 2
-        )
-        let latitudeDelta = max(
-            minimumSpan,
-            (bounds.maximumLatitude - bounds.minimumLatitude) * paddingMultiplier
-        )
-        let longitudeDelta = max(
-            minimumSpan,
-            (bounds.maximumLongitude - bounds.minimumLongitude) * paddingMultiplier
-        )
+        let routeRect = route.dropFirst().reduce(
+            MKMapRect(origin: MKMapPoint(first.coordinate), size: .init(width: 0, height: 0))
+        ) { rect, point in
+            rect.union(
+                MKMapRect(
+                    origin: MKMapPoint(point.coordinate),
+                    size: .init(width: 0, height: 0)
+                )
+            )
+        }
 
-        return .region(MKCoordinateRegion(
-            center: center,
-            span: MKCoordinateSpan(latitudeDelta: latitudeDelta, longitudeDelta: longitudeDelta)
-        ))
+        let center = MKMapPoint(x: routeRect.midX, y: routeRect.midY)
+        let coordinate = center.coordinate
+        let minimumMapPoints = minimumMapSizeMeters * MKMapPointsPerMeterAtLatitude(coordinate.latitude)
+        let width = max(routeRect.width, minimumMapPoints)
+        let height = max(routeRect.height, minimumMapPoints)
+        let fittedRect = MKMapRect(
+            x: center.x - width / 2,
+            y: center.y - height / 2,
+            width: width,
+            height: height
+        )
+        .insetBy(dx: -(width * paddingRatio), dy: -(height * paddingRatio))
+
+        return MKCoordinateRegion(fittedRect)
     }
 }
