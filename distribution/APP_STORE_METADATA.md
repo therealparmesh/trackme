@@ -6,7 +6,7 @@
 - On-device name: trackme
 - Bundle ID: com.parmscript.trackme
 - Version: 1.0
-- Build: 10
+- Build: 11
 - Primary category: Health & Fitness
 - Subtitle: Walk and run tracker
 
