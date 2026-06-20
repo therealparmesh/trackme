@@ -9,19 +9,17 @@ struct LiveRouteMap: View {
 
     var body: some View {
         Map(position: $camera, interactionModes: [.pan, .zoom]) {
-            ForEach(Array(tracker.route.routeSegments.enumerated()), id: \.offset) { _, segment in
-                if segment.count > 1 {
-                    MapPolyline(coordinates: segment.map(\.coordinate))
-                        .stroke(
-                            TokyoTheme.cyan.opacity(0.18),
-                            style: StrokeStyle(lineWidth: 11, lineCap: .round, lineJoin: .round)
-                        )
-                    MapPolyline(coordinates: segment.map(\.coordinate))
-                        .stroke(
-                            TokyoTheme.cyan,
-                            style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round)
-                        )
-                }
+            ForEach(RouteTrailStyle.lines(from: tracker.route)) { line in
+                MapPolyline(coordinates: line.coordinates)
+                    .stroke(
+                        line.color.opacity(0.20),
+                        style: StrokeStyle(lineWidth: 12, lineCap: .round, lineJoin: .round)
+                    )
+                MapPolyline(coordinates: line.coordinates)
+                    .stroke(
+                        line.color,
+                        style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round)
+                    )
             }
 
             if let start = tracker.route.first?.coordinate {

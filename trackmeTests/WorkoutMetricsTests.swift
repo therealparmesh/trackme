@@ -24,7 +24,7 @@ final class WorkoutMetricsTests: XCTestCase {
         let stale = location(latitude: 41, timestamp: sessionStart.addingTimeInterval(-1))
         let inaccurate = location(
             latitude: 41,
-            horizontalAccuracy: 50,
+            horizontalAccuracy: 100,
             timestamp: sessionStart
         )
 

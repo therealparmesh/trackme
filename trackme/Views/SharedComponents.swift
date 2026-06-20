@@ -73,23 +73,28 @@ struct MetricCell: View {
 struct WorkoutRouteMap: View {
     let route: [RoutePoint]
     let height: CGFloat
+    @State private var camera: MapCameraPosition
+
+    init(route: [RoutePoint], height: CGFloat) {
+        self.route = route
+        self.height = height
+        _camera = State(initialValue: RouteMapCamera.position(fitting: route))
+    }
 
     var body: some View {
         if route.count > 1 {
-            Map(interactionModes: [.pan, .zoom]) {
-                ForEach(Array(route.routeSegments.enumerated()), id: \.offset) { _, segment in
-                    if segment.count > 1 {
-                        MapPolyline(coordinates: segment.map(\.coordinate))
-                            .stroke(
-                                TokyoTheme.cyan.opacity(0.18),
-                                style: StrokeStyle(lineWidth: 11, lineCap: .round, lineJoin: .round)
-                            )
-                        MapPolyline(coordinates: segment.map(\.coordinate))
-                            .stroke(
-                                TokyoTheme.cyan,
-                                style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round)
-                            )
-                    }
+            Map(position: $camera, interactionModes: [.pan, .zoom]) {
+                ForEach(RouteTrailStyle.lines(from: route)) { line in
+                    MapPolyline(coordinates: line.coordinates)
+                        .stroke(
+                            line.color.opacity(0.20),
+                            style: StrokeStyle(lineWidth: 12, lineCap: .round, lineJoin: .round)
+                        )
+                    MapPolyline(coordinates: line.coordinates)
+                        .stroke(
+                            line.color,
+                            style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round)
+                        )
                 }
 
                 if let start = route.first?.coordinate {
