@@ -125,9 +125,6 @@ extension LocationTracker {
 
     private func markSignalWeak() {
         guard state != .paused else { return }
-        if state == .tracking {
-            breakRouteForSignalGap()
-        }
         gpsStatus = .weak
     }
 

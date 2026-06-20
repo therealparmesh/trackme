@@ -18,7 +18,8 @@ enum HorizontalDistanceCalculator {
 }
 
 enum GPSPointFilter {
-    private static let maximumHorizontalAccuracy: CLLocationAccuracy = 25
+    private static let maximumReadyHorizontalAccuracy: CLLocationAccuracy = 25
+    private static let maximumTrackingHorizontalAccuracy: CLLocationAccuracy = 65
     private static let maximumSpeed: CLLocationSpeed = 12
     private static let minimumMovementSpeed: CLLocationSpeed = 0.35
     private static let signalTimeout: TimeInterval = 20
@@ -32,7 +33,7 @@ enum GPSPointFilter {
         now: Date = .now
     ) -> Bool {
         guard location.horizontalAccuracy >= 0,
-              location.horizontalAccuracy <= maximumHorizontalAccuracy,
+              location.horizontalAccuracy <= maximumTrackingHorizontalAccuracy,
               location.timestamp >= sessionStart,
               location.timestamp <= now.addingTimeInterval(5) else {
             return false
@@ -43,7 +44,7 @@ enum GPSPointFilter {
         guard seconds > 0 else { return false }
 
         let distance = HorizontalDistanceCalculator.distance(from: previous, to: location)
-        let accuracyFloor = min(10, max(previous.horizontalAccuracy, location.horizontalAccuracy) * 0.5)
+        let accuracyFloor = min(25, max(previous.horizontalAccuracy, location.horizontalAccuracy) * 0.5)
         let speedIsReliablyStationary = location.speed >= 0
             && location.speedAccuracy >= 0
             && location.speed + location.speedAccuracy < minimumMovementSpeed
@@ -54,7 +55,7 @@ enum GPSPointFilter {
 
     static func isReadyFix(_ location: CLLocation, now: Date = .now) -> Bool {
         location.horizontalAccuracy >= 0
-            && location.horizontalAccuracy <= maximumHorizontalAccuracy
+            && location.horizontalAccuracy <= maximumReadyHorizontalAccuracy
             && location.timestamp >= now.addingTimeInterval(-maximumReadyFixAge)
             && location.timestamp <= now.addingTimeInterval(5)
     }
