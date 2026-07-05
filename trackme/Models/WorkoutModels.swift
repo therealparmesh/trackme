@@ -2,7 +2,7 @@ import CoreLocation
 import Foundation
 import SwiftData
 
-enum ActivityKind: String, CaseIterable, Identifiable {
+enum ActivityKind: String, CaseIterable, Codable, Identifiable {
     case walk
     case run
 
@@ -81,9 +81,30 @@ extension Array where Element == RoutePoint {
     }
 }
 
-struct WorkoutPause {
+struct WorkoutPause: Codable {
     let startDate: Date
     let endDate: Date
+}
+
+struct ActiveWorkoutDraft: Codable {
+    enum State: String, Codable {
+        case tracking
+        case paused
+    }
+
+    let state: State
+    let activity: ActivityKind
+    let startDate: Date
+    let pausedAt: Date?
+    let pausedDuration: TimeInterval
+    let pauses: [WorkoutPause]
+    let startsNewSegment: Bool
+    let elapsed: TimeInterval
+    let distance: Double
+    let route: [RoutePoint]
+    let lastAcceptedLocation: RoutePoint?
+    let lastReadyLocation: RoutePoint?
+    let lastRawLocationUpdateAt: Date?
 }
 
 struct WorkoutSnapshot: Identifiable {

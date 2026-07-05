@@ -247,7 +247,6 @@ private extension TrackView {
                 await health.deleteWorkout(id: healthKitWorkoutID)
             }
             modelContext.rollback()
-            tracker.reset()
             trackAlert = .saveFailure(snapshot)
             return
         }
@@ -283,7 +282,7 @@ private extension TrackView {
                 primaryButton: .default(Text("Try again")) {
                     Task { await persist(snapshot) }
                 },
-                secondaryButton: .destructive(Text("Discard workout"))
+                secondaryButton: .destructive(Text("Discard workout"), action: discardWorkout)
             )
         }
     }

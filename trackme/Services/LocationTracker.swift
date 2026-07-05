@@ -38,6 +38,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
     }
 
     @ObservationIgnored let manager: LocationManagerClient
+    @ObservationIgnored private let activeDraftStore: ActiveWorkoutDraftStoring
     var lastAcceptedLocation: CLLocation?
     var lastReadyLocation: CLLocation?
     var lastRawLocationUpdateAt: Date?
@@ -60,8 +61,12 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
     var isRequestingAuthorization = false
     var errorMessage: String?
 
-    init(manager: LocationManagerClient = CLLocationManager()) {
+    init(
+        manager: LocationManagerClient = CLLocationManager(),
+        activeDraftStore: ActiveWorkoutDraftStoring = FileActiveWorkoutDraftStore()
+    ) {
         self.manager = manager
+        self.activeDraftStore = activeDraftStore
         super.init()
         manager.delegate = self
         manager.activityType = .fitness
@@ -150,6 +155,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         beginLocationUpdatesIfAuthorized(background: true)
         startClock()
         startSignalMonitor()
+        saveActiveDraft()
     }
 
     func pause() {
@@ -161,6 +167,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         lastAcceptedLocation = nil
         stopTimers()
         manager.stopUpdatingLocation()
+        saveActiveDraft()
     }
 
     func resume() {
@@ -179,6 +186,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         beginLocationUpdatesIfAuthorized(background: true)
         startClock()
         startSignalMonitor()
+        saveActiveDraft()
     }
 
     func stop() -> WorkoutSnapshot? {
@@ -212,6 +220,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
     func reset() {
         guard state == .idle else { return }
         clearSession()
+        activeDraftStore.clear()
         errorMessage = nil
     }
 
@@ -219,6 +228,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         manager.stopUpdatingLocation()
         state = .idle
         clearSession()
+        activeDraftStore.clear()
         errorMessage = nil
         if isAuthorized {
             gpsStatus = hasRecentReadyFix ? .ready : .finding
@@ -289,4 +299,87 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
 
     static let locationAccessMessage =
         "Location access is off. Allow it in iPhone Settings to map and measure your workout."
+}
+
+extension LocationTracker {
+    @discardableResult
+    func restoreActiveWorkoutIfAvailable(now: Date = .now) -> Bool {
+        guard state == .idle, let draft = activeDraftStore.load() else { return false }
+
+        activity = draft.activity
+        startDate = draft.startDate
+        pausedAt = draft.pausedAt
+        pausedDuration = draft.pausedDuration
+        pauses = draft.pauses
+        startsNewSegment = draft.startsNewSegment
+        elapsed = draft.elapsed
+        distance = draft.distance
+        route = draft.route
+        lastAcceptedLocation = draft.lastAcceptedLocation?.location
+        lastReadyLocation = draft.lastReadyLocation?.location ?? lastAcceptedLocation
+        lastRawLocationUpdateAt = draft.lastRawLocationUpdateAt
+        errorMessage = nil
+
+        switch draft.state {
+        case .tracking:
+            state = .tracking
+            if GPSPointFilter.signalTimedOut(since: lastRawLocationUpdateAt, now: now) {
+                lastAcceptedLocation = nil
+                startsNewSegment = true
+                gpsStatus = .lost
+            } else {
+                gpsStatus = .finding
+            }
+            updateElapsed(at: now)
+            beginLocationUpdatesIfAuthorized(background: true)
+            startClock()
+            startSignalMonitor()
+        case .paused:
+            state = .paused
+            gpsStatus = .weak
+            updateElapsed(at: now)
+        }
+
+        saveActiveDraft()
+        return true
+    }
+
+    func saveActiveDraft() {
+        guard let draft = activeDraft else { return }
+        activeDraftStore.save(draft)
+    }
+
+    private var activeDraft: ActiveWorkoutDraft? {
+        guard let startDate, let draftState = activeDraftState else { return nil }
+        return ActiveWorkoutDraft(
+            state: draftState,
+            activity: activity,
+            startDate: startDate,
+            pausedAt: pausedAt,
+            pausedDuration: pausedDuration,
+            pauses: pauses,
+            startsNewSegment: startsNewSegment,
+            elapsed: elapsed,
+            distance: distance,
+            route: route,
+            lastAcceptedLocation: lastAcceptedLocation.map {
+                RoutePoint(location: $0, startsNewSegment: startsNewSegment)
+            },
+            lastReadyLocation: lastReadyLocation.map {
+                RoutePoint(location: $0, startsNewSegment: startsNewSegment)
+            },
+            lastRawLocationUpdateAt: lastRawLocationUpdateAt
+        )
+    }
+
+    private var activeDraftState: ActiveWorkoutDraft.State? {
+        switch state {
+        case .idle:
+            return nil
+        case .tracking:
+            return .tracking
+        case .paused:
+            return .paused
+        }
+    }
 }

@@ -37,11 +37,13 @@ extension LocationTracker {
             acceptedLocation = true
         }
         acceptedLocation ? (gpsStatus = .ready) : markSignalWeak()
+        saveActiveDraft()
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         guard let locationError = error as? CLError else {
             errorMessage = "Your location could not be updated. Try again."
+            saveActiveDraft()
             return
         }
         switch locationError.code {
@@ -57,16 +59,19 @@ extension LocationTracker {
             markSignalWeak()
             errorMessage = "Your location could not be updated. Try again."
         }
+        saveActiveDraft()
     }
 
     func locationManagerDidPauseLocationUpdates(_ manager: CLLocationManager) {
         markSignalLost()
+        saveActiveDraft()
     }
 
     func locationManagerDidResumeLocationUpdates(_ manager: CLLocationManager) {
         if state == .tracking {
             startsNewSegment = true
             gpsStatus = .finding
+            saveActiveDraft()
         }
     }
 
@@ -88,6 +93,7 @@ extension LocationTracker {
             return
         }
         markSignalLost()
+        saveActiveDraft()
     }
 
     private func updateReadiness(from locations: [CLLocation]) {
