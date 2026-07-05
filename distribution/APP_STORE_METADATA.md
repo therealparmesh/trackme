@@ -6,7 +6,7 @@
 - On-device name: trackme
 - Bundle ID: com.parmscript.trackme
 - Version: 1.0.1
-- Build: 12
+- Build: 13
 - Primary category: Health & Fitness
 - Subtitle: Walk and run tracker
 
@@ -50,7 +50,7 @@ Upload three iPhone screenshots in this order:
 - Price: Free ($0.00)
 - Base country or region: United States (USD)
 - Distribution: Public App Store
-- Release option: Manually release after App Review approval
+- Release option: Automatically release after App Review approval
 
 ## URLs Required Before Submission
 
