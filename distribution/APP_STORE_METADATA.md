@@ -31,7 +31,7 @@ trackme keeps the experience focused:
 
 ## What's New
 
-Initial release with walk and run tracking, a live route map, simple summaries, history, and Apple Health support.
+Improves reliability for active walks and runs, including recovery of an in-progress workout if the app is relaunched after being in the background.
 
 ## Keywords
 
