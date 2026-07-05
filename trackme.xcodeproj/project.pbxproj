@@ -14,6 +14,7 @@
 		1977540F0336BE581C6BAB05 /* SharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CB49029013F5A735109857 /* SharedComponents.swift */; };
 		2435C2241D451239CC0BECBB /* TokyoTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F3454C15AD8D0F4143EA98C /* TokyoTheme.swift */; };
 		3902EA5A60AF2E0F7B253CDD /* WorkoutMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED8EDDC5918E1200F8BB05E4 /* WorkoutMetrics.swift */; };
+		3E8D62A7D23DEC59401EF853 /* ActiveWorkoutDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FE5C83C04D436E73329D3D3 /* ActiveWorkoutDraftStore.swift */; };
 		42DA90921E1E22E6E2F60AB5 /* LocationTracker+CoreLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC16B2326727495FDD192616 /* LocationTracker+CoreLocation.swift */; };
 		50405DD8BAB0C77B1E28A25B /* LocationTrackerSignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A351E752FBE5E9356182E0 /* LocationTrackerSignalTests.swift */; };
 		50E0AA6E73B181539DDC3DBA /* WorkoutModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B112E6F5C23CD7B22D2037DB /* WorkoutModels.swift */; };
@@ -55,6 +56,7 @@
 		2351EC5F6B7C7891E1D4874E /* RouteTrailStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteTrailStyle.swift; sourceTree = "<group>"; };
 		23FB4BDEAAACE5A17EDE036B /* TrackMapCameraTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackMapCameraTests.swift; sourceTree = "<group>"; };
 		24C35352E5890EA613AC35B5 /* TrackAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackAlert.swift; sourceTree = "<group>"; };
+		2FE5C83C04D436E73329D3D3 /* ActiveWorkoutDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutDraftStore.swift; sourceTree = "<group>"; };
 		35AB80661B7E5C813CD3E1A8 /* TrackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackView.swift; sourceTree = "<group>"; };
 		3F3454C15AD8D0F4143EA98C /* TokyoTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokyoTheme.swift; sourceTree = "<group>"; };
 		41909E0ACDFAF5A10B9D3B88 /* WorkoutSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSnapshotTests.swift; sourceTree = "<group>"; };
@@ -107,6 +109,7 @@
 		71EFF984A152DAD9091142E9 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				2FE5C83C04D436E73329D3D3 /* ActiveWorkoutDraftStore.swift */,
 				4E29D36091886F154B3E8189 /* HealthKitService.swift */,
 				44ACD41C9D162DBB0D3F23BB /* LocationTracker.swift */,
 				EC16B2326727495FDD192616 /* LocationTracker+CoreLocation.swift */,
@@ -278,6 +281,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3E8D62A7D23DEC59401EF853 /* ActiveWorkoutDraftStore.swift in Sources */,
 				A876F3537C84E79D6A415E51 /* AppTab.swift in Sources */,
 				84FCF248DB63552E63B5BAF2 /* HealthKitService.swift in Sources */,
 				99E4E6916B649AD05ECEA696 /* InsightsView.swift in Sources */,
@@ -379,7 +383,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 7654L3CX5L;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -393,7 +397,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -499,7 +503,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 7654L3CX5L;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -519,7 +523,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

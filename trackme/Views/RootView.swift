@@ -33,7 +33,9 @@ struct RootView: View {
         .environment(health)
         .task {
             guard !AppEnvironment.isRunningTests else { return }
-            tracker.requestStartupLocationAccess()
+            if !tracker.restoreActiveWorkoutIfAvailable() {
+                tracker.requestStartupLocationAccess()
+            }
             await health.requestAccess(showsIncompleteMessage: false)
         }
         .onChange(of: scenePhase) { _, phase in

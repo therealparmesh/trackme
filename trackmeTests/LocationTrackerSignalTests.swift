@@ -75,8 +75,9 @@ final class LocationTrackerSignalTests: XCTestCase {
     func testDiscardStopsAndClearsActiveWorkout() {
         let sessionStart = Date(timeIntervalSince1970: 1_000)
         let manager = SignalTestLocationManager()
+        let draftStore = InMemoryActiveWorkoutDraftStore()
         manager.authorizationStatus = .authorizedWhenInUse
-        let tracker = LocationTracker(manager: manager)
+        let tracker = LocationTracker(manager: manager, activeDraftStore: draftStore)
         tracker.authorizationStatus = .authorizedWhenInUse
         tracker.state = .tracking
         tracker.startDate = sessionStart
@@ -85,6 +86,7 @@ final class LocationTrackerSignalTests: XCTestCase {
         tracker.errorMessage = "Temporary"
         tracker.route = [RoutePoint(location: location(latitude: 41, timestamp: sessionStart), startsNewSegment: true)]
 
+        tracker.saveActiveDraft()
         tracker.discard()
 
         XCTAssertEqual(tracker.state, .idle)
@@ -93,7 +95,111 @@ final class LocationTrackerSignalTests: XCTestCase {
         XCTAssertEqual(tracker.distance, 0)
         XCTAssertTrue(tracker.route.isEmpty)
         XCTAssertNil(tracker.errorMessage)
+        XCTAssertNil(draftStore.draft)
+        XCTAssertTrue(draftStore.didClear)
         XCTAssertEqual(manager.stopUpdatingLocationCalls, 1)
+    }
+
+    func testActiveWorkoutDraftPersistsLocationProgress() {
+        let sessionStart = Date(timeIntervalSince1970: 1_000)
+        let manager = SignalTestLocationManager()
+        let draftStore = InMemoryActiveWorkoutDraftStore()
+        manager.authorizationStatus = .authorizedWhenInUse
+        let tracker = LocationTracker(manager: manager, activeDraftStore: draftStore)
+        tracker.authorizationStatus = .authorizedWhenInUse
+        tracker.state = .tracking
+        tracker.startDate = sessionStart
+
+        let first = location(latitude: 41, timestamp: sessionStart.addingTimeInterval(1))
+        let second = location(latitude: 41.000_2, timestamp: sessionStart.addingTimeInterval(15))
+        tracker.locationManager(CLLocationManager(), didUpdateLocations: [first, second])
+
+        let draft = draftStore.draft
+        XCTAssertEqual(draft?.state, .tracking)
+        XCTAssertEqual(draft?.route.count, 2)
+        XCTAssertEqual(draft?.distance ?? 0, tracker.distance, accuracy: 0.001)
+        XCTAssertEqual(draft?.lastAcceptedLocation?.latitude, second.coordinate.latitude)
+    }
+
+    func testRestoresActiveWorkoutDraftAndRestartsBackgroundUpdates() {
+        let sessionStart = Date(timeIntervalSince1970: 1_000)
+        let manager = SignalTestLocationManager()
+        let draftStore = InMemoryActiveWorkoutDraftStore()
+        let lastPoint = RoutePoint(
+            location: location(latitude: 41.000_2, timestamp: sessionStart.addingTimeInterval(60)),
+            startsNewSegment: false
+        )
+        draftStore.draft = ActiveWorkoutDraft(
+            state: .tracking,
+            activity: .walk,
+            startDate: sessionStart,
+            pausedAt: nil,
+            pausedDuration: 0,
+            pauses: [],
+            startsNewSegment: false,
+            elapsed: 60,
+            distance: 42,
+            route: [lastPoint],
+            lastAcceptedLocation: lastPoint,
+            lastReadyLocation: lastPoint,
+            lastRawLocationUpdateAt: sessionStart.addingTimeInterval(60)
+        )
+        manager.authorizationStatus = .authorizedWhenInUse
+        let tracker = LocationTracker(manager: manager, activeDraftStore: draftStore)
+        tracker.authorizationStatus = .authorizedWhenInUse
+
+        let restored = tracker.restoreActiveWorkoutIfAvailable(now: sessionStart.addingTimeInterval(120))
+
+        XCTAssertTrue(restored)
+        XCTAssertEqual(tracker.state, .tracking)
+        XCTAssertEqual(tracker.activity, .walk)
+        XCTAssertEqual(tracker.distance, 42)
+        XCTAssertEqual(tracker.route.count, 1)
+        XCTAssertEqual(tracker.route.first?.latitude, lastPoint.latitude)
+        XCTAssertEqual(tracker.route.first?.longitude, lastPoint.longitude)
+        XCTAssertEqual(tracker.elapsed, 120, accuracy: 0.001)
+        XCTAssertEqual(manager.startUpdatingLocationCalls, 1)
+        XCTAssertTrue(manager.allowsBackgroundLocationUpdates)
+
+        tracker.discard()
+    }
+
+    func testRestoredStaleWorkoutStartsNewRouteSegmentWithoutGuessingDistance() {
+        let sessionStart = Date(timeIntervalSince1970: 1_000)
+        let manager = SignalTestLocationManager()
+        let draftStore = InMemoryActiveWorkoutDraftStore()
+        let lastPoint = RoutePoint(
+            location: location(latitude: 41, timestamp: sessionStart.addingTimeInterval(10)),
+            startsNewSegment: true
+        )
+        draftStore.draft = ActiveWorkoutDraft(
+            state: .tracking,
+            activity: .walk,
+            startDate: sessionStart,
+            pausedAt: nil,
+            pausedDuration: 0,
+            pauses: [],
+            startsNewSegment: false,
+            elapsed: 10,
+            distance: 42,
+            route: [lastPoint],
+            lastAcceptedLocation: lastPoint,
+            lastReadyLocation: lastPoint,
+            lastRawLocationUpdateAt: sessionStart.addingTimeInterval(10)
+        )
+        manager.authorizationStatus = .authorizedWhenInUse
+        let tracker = LocationTracker(manager: manager, activeDraftStore: draftStore)
+        tracker.authorizationStatus = .authorizedWhenInUse
+
+        tracker.restoreActiveWorkoutIfAvailable(now: sessionStart.addingTimeInterval(90))
+        let resumedPoint = location(latitude: 41.01, timestamp: sessionStart.addingTimeInterval(95))
+        tracker.locationManager(CLLocationManager(), didUpdateLocations: [resumedPoint])
+
+        XCTAssertEqual(tracker.distance, 42, accuracy: 0.001)
+        XCTAssertEqual(tracker.route.count, 2)
+        XCTAssertTrue(tracker.route[1].startsNewSegment)
+
+        tracker.discard()
     }
 
     private func location(
@@ -134,5 +240,24 @@ private final class SignalTestLocationManager: LocationManagerClient {
     }
     func stopUpdatingLocation() {
         stopUpdatingLocationCalls += 1
+    }
+}
+
+private final class InMemoryActiveWorkoutDraftStore: ActiveWorkoutDraftStoring {
+    var draft: ActiveWorkoutDraft?
+    var didClear = false
+
+    func load() -> ActiveWorkoutDraft? {
+        draft
+    }
+
+    func save(_ draft: ActiveWorkoutDraft) {
+        self.draft = draft
+        didClear = false
+    }
+
+    func clear() {
+        draft = nil
+        didClear = true
     }
 }
