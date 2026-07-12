@@ -39,6 +39,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
 
     @ObservationIgnored let manager: LocationManagerClient
     @ObservationIgnored private let activeDraftStore: ActiveWorkoutDraftStoring
+    @ObservationIgnored let motionActivity: MotionActivityClient
     var lastAcceptedLocation: CLLocation?
     var lastReadyLocation: CLLocation?
     var lastRawLocationUpdateAt: Date?
@@ -63,10 +64,12 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
 
     init(
         manager: LocationManagerClient = CLLocationManager(),
-        activeDraftStore: ActiveWorkoutDraftStoring = FileActiveWorkoutDraftStore()
+        activeDraftStore: ActiveWorkoutDraftStoring = FileActiveWorkoutDraftStore(),
+        motionActivity: MotionActivityClient = CoreMotionActivityClient()
     ) {
         self.manager = manager
         self.activeDraftStore = activeDraftStore
+        self.motionActivity = motionActivity
         super.init()
         manager.delegate = self
         manager.activityType = .fitness
@@ -153,6 +156,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         gpsStatus = .finding
         lastRawLocationUpdateAt = .now
         beginLocationUpdatesIfAuthorized(background: true)
+        motionActivity.start()
         startClock()
         startSignalMonitor()
         saveActiveDraft()
@@ -166,6 +170,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         pausedAt = now
         lastAcceptedLocation = nil
         stopTimers()
+        motionActivity.stop()
         manager.stopUpdatingLocation()
         saveActiveDraft()
     }
@@ -184,6 +189,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         lastRawLocationUpdateAt = .now
         state = .tracking
         beginLocationUpdatesIfAuthorized(background: true)
+        motionActivity.start()
         startClock()
         startSignalMonitor()
         saveActiveDraft()
@@ -199,6 +205,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         }
         updateElapsed(at: endDate)
         manager.stopUpdatingLocation()
+        motionActivity.stop()
         stopTimers()
 
         let path = WorkoutPathFilter.finalized(distance: distance, route: route)
@@ -226,6 +233,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
 
     func discard() {
         manager.stopUpdatingLocation()
+        motionActivity.stop()
         state = .idle
         clearSession()
         activeDraftStore.clear()
@@ -263,17 +271,6 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         }
     }
 
-    private func runSignalMonitor() async {
-        while !Task.isCancelled {
-            do {
-                try await Task.sleep(for: .seconds(5))
-            } catch {
-                return
-            }
-            refreshSignalTimeout()
-        }
-    }
-
     private func clearSession() {
         stopTimers()
         lastAcceptedLocation = nil
@@ -299,6 +296,19 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
 
     static let locationAccessMessage =
         "Location access is off. Allow it in iPhone Settings to map and measure your workout."
+}
+
+private extension LocationTracker {
+    func runSignalMonitor() async {
+        while !Task.isCancelled {
+            do {
+                try await Task.sleep(for: .seconds(5))
+            } catch {
+                return
+            }
+            refreshSignalTimeout()
+        }
+    }
 }
 
 extension LocationTracker {
@@ -332,6 +342,7 @@ extension LocationTracker {
             }
             updateElapsed(at: now)
             beginLocationUpdatesIfAuthorized(background: true)
+            motionActivity.start()
             startClock()
             startSignalMonitor()
         case .paused:

@@ -31,12 +31,15 @@ extension LocationTracker {
             return
         }
 
-        var acceptedLocation = false
         for location in locations where isUsable(location) {
             append(location)
-            acceptedLocation = true
         }
-        acceptedLocation ? (gpsStatus = .ready) : markSignalWeak()
+        if let latestLocation = locations.last,
+           GPSPointFilter.hasReadyAccuracy(latestLocation) {
+            gpsStatus = .ready
+        } else {
+            markSignalWeak()
+        }
         saveActiveDraft()
     }
 
@@ -115,7 +118,8 @@ extension LocationTracker {
         return GPSPointFilter.shouldAccept(
             location,
             after: lastAcceptedLocation,
-            sessionStart: startDate
+            sessionStart: startDate,
+            motionState: motionActivity.state(at: location.timestamp)
         )
     }
 

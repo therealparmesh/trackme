@@ -94,7 +94,10 @@ final class TrackmeCoreTests: XCTestCase {
         let sessionStart = Date(timeIntervalSince1970: 1_000)
         let manager = FakeLocationManager()
         manager.authorizationStatus = .authorizedWhenInUse
-        let tracker = LocationTracker(manager: manager)
+        let tracker = LocationTracker(
+            manager: manager,
+            activeDraftStore: CoreTestActiveWorkoutDraftStore()
+        )
         tracker.authorizationStatus = .authorizedWhenInUse
         tracker.state = .tracking
         tracker.startDate = sessionStart
@@ -336,5 +339,21 @@ private final class FakeHealthStoreClient: HealthStoreClient {
 
     func deleteWorkout(id: UUID) async throws {
         deletedWorkoutIDs.append(id)
+    }
+}
+
+private final class CoreTestActiveWorkoutDraftStore: ActiveWorkoutDraftStoring {
+    private var draft: ActiveWorkoutDraft?
+
+    func load() -> ActiveWorkoutDraft? {
+        draft
+    }
+
+    func save(_ draft: ActiveWorkoutDraft) {
+        self.draft = draft
+    }
+
+    func clear() {
+        draft = nil
     }
 }

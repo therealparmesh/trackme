@@ -28,12 +28,21 @@ final class WorkoutMetricsTests: XCTestCase {
             timestamp: sessionStart
         )
 
-        XCTAssertFalse(GPSPointFilter.shouldAccept(stale, after: nil, sessionStart: sessionStart, now: sessionStart))
+        XCTAssertFalse(
+            GPSPointFilter.shouldAccept(
+                stale,
+                after: nil,
+                sessionStart: sessionStart,
+                motionState: .unknown,
+                now: sessionStart
+            )
+        )
         XCTAssertFalse(
             GPSPointFilter.shouldAccept(
                 inaccurate,
                 after: nil,
                 sessionStart: sessionStart,
+                motionState: .unknown,
                 now: sessionStart
             )
         )
@@ -49,6 +58,7 @@ final class WorkoutMetricsTests: XCTestCase {
                 next,
                 after: previous,
                 sessionStart: sessionStart,
+                motionState: .moving,
                 now: sessionStart.addingTimeInterval(600)
             )
         )
@@ -69,6 +79,7 @@ final class WorkoutMetricsTests: XCTestCase {
                 drift,
                 after: previous,
                 sessionStart: sessionStart,
+                motionState: .unknown,
                 now: drift.timestamp
             )
         )
@@ -89,6 +100,7 @@ final class WorkoutMetricsTests: XCTestCase {
                 walking,
                 after: previous,
                 sessionStart: sessionStart,
+                motionState: .unknown,
                 now: walking.timestamp
             )
         )
