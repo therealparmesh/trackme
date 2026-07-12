@@ -6,9 +6,10 @@ Review steps:
 2. On Track, choose Walk or Run.
 3. If prompted, enable Location access.
 4. Wait for the status to show READY, then tap Start.
-5. Move with the device to record route and distance data.
-6. Tap Finish. The workout saves immediately and the app opens History.
-7. Open a workout to view its route and summary. The top-right menu can delete it.
+5. Allow Motion & Fitness access when prompted. This prompt appears when the first workout starts.
+6. Move with the device to record route and distance data.
+7. Tap Finish. The workout saves immediately and the app opens History.
+8. Open a workout to view its route and summary. The top-right menu can delete it.
 
 HealthKit:
 
@@ -20,8 +21,8 @@ Background location updates are enabled only while a workout is actively recordi
 
 Location Accuracy:
 
-The Start button is disabled until a recent, accurate location fix is available. If GPS signal becomes weak or unavailable during a workout, trackme pauses route continuity and resumes from a new segment when signal returns so distance is not inflated by a straight-line jump.
+The Start button is disabled until a recent, accurate location fix is available. During a workout, trackme combines Core Location with on-device Core Motion activity classification to reject stationary GPS drift without automatically pausing walking workouts. Motion activity is not stored or transmitted. If GPS signal becomes unavailable, trackme breaks route continuity and resumes from a new segment so distance is not inflated by a straight-line jump.
 
 Payments:
 
-Version 1.0.1 has no purchases, subscriptions, paywall, or account system.
+Version 1.0.2 has no purchases, subscriptions, paywall, or account system.

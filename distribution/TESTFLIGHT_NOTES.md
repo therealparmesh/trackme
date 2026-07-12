@@ -3,6 +3,9 @@
 Please test the core walk and run flow:
 
 - Wait for READY, then start, pause, resume, and finish a workout
+- Allow Motion & Fitness access when prompted after starting a workout
+- Leave an active workout stationary for several minutes, including with the screen locked, and confirm distance does not increase while elapsed time continues
+- Start walking after being stationary and confirm route and distance tracking resume normally
 - Check the live map and saved workout summary
 - Review recent history and trends
 - Confirm Apple Health sync adds completed workouts when permission is granted
