@@ -30,12 +30,14 @@ enum GPSPointFilter {
         _ location: CLLocation,
         after previous: CLLocation?,
         sessionStart: Date,
+        motionState: MotionState,
         now: Date = .now
     ) -> Bool {
         guard location.horizontalAccuracy >= 0,
               location.horizontalAccuracy <= maximumTrackingHorizontalAccuracy,
               location.timestamp >= sessionStart,
-              location.timestamp <= now.addingTimeInterval(5) else {
+              location.timestamp <= now.addingTimeInterval(5),
+              motionState != .stationary else {
             return false
         }
 
@@ -45,19 +47,22 @@ enum GPSPointFilter {
 
         let distance = HorizontalDistanceCalculator.distance(from: previous, to: location)
         let accuracyFloor = min(25, max(previous.horizontalAccuracy, location.horizontalAccuracy) * 0.5)
-        let speedIsReliablyStationary = location.speed >= 0
-            && location.speedAccuracy >= 0
-            && location.speed + location.speedAccuracy < minimumMovementSpeed
-        return !speedIsReliablyStationary
+        let hasReliableSpeed = location.speedAccuracy >= 0
+            && location.speed - location.speedAccuracy >= minimumMovementSpeed
+        return (motionState == .moving || hasReliableSpeed)
             && distance >= max(4, accuracyFloor)
             && distance / seconds < maximumSpeed
     }
 
     static func isReadyFix(_ location: CLLocation, now: Date = .now) -> Bool {
-        location.horizontalAccuracy >= 0
-            && location.horizontalAccuracy <= maximumReadyHorizontalAccuracy
+        hasReadyAccuracy(location)
             && location.timestamp >= now.addingTimeInterval(-maximumReadyFixAge)
             && location.timestamp <= now.addingTimeInterval(5)
+    }
+
+    static func hasReadyAccuracy(_ location: CLLocation) -> Bool {
+        location.horizontalAccuracy >= 0
+            && location.horizontalAccuracy <= maximumReadyHorizontalAccuracy
     }
 
     static func signalTimedOut(since lastUpdateAt: Date?, now: Date = .now) -> Bool {

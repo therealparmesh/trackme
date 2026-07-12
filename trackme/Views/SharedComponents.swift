@@ -156,7 +156,7 @@ struct WorkoutMetricsCard: View {
                 spacing: 20
             ) {
                 SummaryMetric(label: "Distance", value: "\(MetricFormatter.distance(distance)) mi")
-                SummaryMetric(label: "Moving time", value: MetricFormatter.duration(duration))
+                SummaryMetric(label: "Elapsed time", value: MetricFormatter.duration(duration))
                 SummaryMetric(label: "Average pace", value: "\(MetricFormatter.pace(averagePace)) /mi")
                 SummaryMetric(label: "Elevation gain", value: "\(MetricFormatter.elevation(elevationGain)) ft")
             }

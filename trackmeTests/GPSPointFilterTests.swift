@@ -21,25 +21,86 @@ final class GPSPointFilterTests: XCTestCase {
                 next,
                 after: previous,
                 sessionStart: sessionStart,
+                motionState: .unknown,
                 now: next.timestamp
             )
         )
     }
 
-    func testTrackingRejectsVeryPoorAccuracySamples() {
+    func testTrackingRejectsAccurateFixWhenSpeedCouldBeStationary() {
         let sessionStart = Date(timeIntervalSince1970: 1_000)
-        let poorFix = location(
+        let previous = location(
+            latitude: 41,
+            horizontalAccuracy: 10,
+            speed: 0.4,
+            speedAccuracy: 0.1,
+            timestamp: sessionStart.addingTimeInterval(1)
+        )
+        let drift = location(
             latitude: 41.000_25,
-            horizontalAccuracy: 100,
+            horizontalAccuracy: 10,
+            speed: 0.4,
+            speedAccuracy: 0.1,
             timestamp: sessionStart.addingTimeInterval(13)
         )
 
         XCTAssertFalse(
             GPSPointFilter.shouldAccept(
-                poorFix,
-                after: nil,
+                drift,
+                after: previous,
                 sessionStart: sessionStart,
-                now: poorFix.timestamp
+                motionState: .unknown,
+                now: drift.timestamp
+            )
+        )
+    }
+
+    func testTrackingRejectsStationaryMotionDespitePlausibleGPSSpeed() {
+        let sessionStart = Date(timeIntervalSince1970: 1_000)
+        let previous = location(
+            latitude: 41,
+            horizontalAccuracy: 10,
+            timestamp: sessionStart.addingTimeInterval(1)
+        )
+        let drift = location(
+            latitude: 41.000_25,
+            horizontalAccuracy: 10,
+            timestamp: sessionStart.addingTimeInterval(13)
+        )
+
+        XCTAssertFalse(
+            GPSPointFilter.shouldAccept(
+                drift,
+                after: previous,
+                sessionStart: sessionStart,
+                motionState: .stationary,
+                now: drift.timestamp
+            )
+        )
+    }
+
+    func testTrackingAcceptsMotionConfirmedMovementWithoutGPSSpeed() {
+        let sessionStart = Date(timeIntervalSince1970: 1_000)
+        let previous = location(
+            latitude: 41,
+            horizontalAccuracy: 10,
+            timestamp: sessionStart.addingTimeInterval(1)
+        )
+        let next = location(
+            latitude: 41.000_1,
+            horizontalAccuracy: 10,
+            speed: -1,
+            speedAccuracy: -1,
+            timestamp: sessionStart.addingTimeInterval(8)
+        )
+
+        XCTAssertTrue(
+            GPSPointFilter.shouldAccept(
+                next,
+                after: previous,
+                sessionStart: sessionStart,
+                motionState: .moving,
+                now: next.timestamp
             )
         )
     }
@@ -47,6 +108,8 @@ final class GPSPointFilterTests: XCTestCase {
     private func location(
         latitude: Double,
         horizontalAccuracy: CLLocationAccuracy,
+        speed: CLLocationSpeed = 1.2,
+        speedAccuracy: CLLocationSpeedAccuracy = 0.2,
         timestamp: Date
     ) -> CLLocation {
         CLLocation(
@@ -56,8 +119,8 @@ final class GPSPointFilterTests: XCTestCase {
             verticalAccuracy: 5,
             course: -1,
             courseAccuracy: -1,
-            speed: 1.2,
-            speedAccuracy: 0.2,
+            speed: speed,
+            speedAccuracy: speedAccuracy,
             timestamp: timestamp
         )
     }

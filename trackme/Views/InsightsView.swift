@@ -172,7 +172,7 @@ struct InsightsView: View {
 
             HStack {
                 MetricCell(label: "Workouts", value: "\(filtered.count)")
-                MetricCell(label: "Moving time", value: MetricFormatter.duration(totalDuration))
+                MetricCell(label: "Elapsed time", value: MetricFormatter.duration(totalDuration))
             }
 
             Divider().overlay(Color.white.opacity(0.06))

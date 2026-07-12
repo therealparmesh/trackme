@@ -20,6 +20,8 @@
     <string>trackme</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>trackme uses your location during workouts to draw your route and calculate distance, pace, and elevation.</string>
+    <key>NSMotionUsageDescription</key>
+    <string>trackme uses motion activity to distinguish your movement from GPS drift during walks and runs.</string>
     <key>NSHealthUpdateUsageDescription</key>
     <string>trackme saves your completed workouts, distance, and routes to Apple Health.</string>
     <key>NSHealthShareUsageDescription</key>

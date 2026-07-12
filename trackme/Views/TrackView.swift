@@ -86,7 +86,7 @@ struct TrackView: View {
                 .accessibilityValue("\(MetricFormatter.distance(tracker.distance)) miles")
 
                 HStack {
-                    MetricCell(label: "Moving time", value: MetricFormatter.duration(tracker.elapsed))
+                    MetricCell(label: "Elapsed time", value: MetricFormatter.duration(tracker.elapsed))
                     MetricCell(
                         label: "Average pace",
                         value: "\(MetricFormatter.pace(tracker.averagePace)) /mi"
