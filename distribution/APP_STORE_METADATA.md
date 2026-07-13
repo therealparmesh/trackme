@@ -6,7 +6,7 @@
 - On-device name: trackme
 - Bundle ID: com.parmscript.trackme
 - Version: 1.0.2
-- Build: 14
+- Build: 15
 - Primary category: Health & Fitness
 - Subtitle: Walk and run tracker
 
@@ -31,7 +31,7 @@ trackme keeps the experience focused:
 
 ## What's New
 
-Improves distance accuracy by filtering stationary GPS drift, including when signal strength changes in the background. Workout duration is now labeled as elapsed time for clarity.
+Improves GPS path accuracy and continuity with stronger route anchors, cleaner recovery after signal interruptions, and fewer false signal-loss states while stationary. Workout duration is now labeled as elapsed time for clarity.
 
 ## Keywords
 
