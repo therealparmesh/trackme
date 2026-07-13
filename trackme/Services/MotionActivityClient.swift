@@ -3,6 +3,21 @@ import Foundation
 
 enum MotionState: Equatable {
     case unknown, stationary, moving
+
+    static func classify(
+        stationary: Bool,
+        walking: Bool,
+        running: Bool,
+        confidence: CMMotionActivityConfidence
+    ) -> MotionState {
+        if walking || running {
+            return .moving
+        }
+        if stationary, confidence != .low {
+            return .stationary
+        }
+        return .unknown
+    }
 }
 
 protocol MotionActivityClient: AnyObject {
@@ -21,16 +36,15 @@ final class CoreMotionActivityClient: MotionActivityClient {
         guard CMMotionActivityManager.isActivityAvailable() else { return }
         let manager = CMMotionActivityManager()
         self.manager = manager
-        manager.startActivityUpdates(to: .main) { [weak self] activity in
-            guard let activity else { return }
-            self?.currentStateStartedAt = activity.startDate
-            if activity.stationary, activity.confidence != .low {
-                self?.currentState = .stationary
-            } else if activity.walking || activity.running {
-                self?.currentState = .moving
-            } else {
-                self?.currentState = .unknown
-            }
+        manager.startActivityUpdates(to: .main) { [weak self, weak manager] activity in
+            guard let self, let manager, self.manager === manager, let activity else { return }
+            currentStateStartedAt = activity.startDate
+            currentState = MotionState.classify(
+                stationary: activity.stationary,
+                walking: activity.walking,
+                running: activity.running,
+                confidence: activity.confidence
+            )
         }
     }
 

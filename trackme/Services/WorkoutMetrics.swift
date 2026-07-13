@@ -19,7 +19,7 @@ enum HorizontalDistanceCalculator {
 
 enum GPSPointFilter {
     private static let maximumReadyHorizontalAccuracy: CLLocationAccuracy = 25
-    private static let maximumTrackingHorizontalAccuracy: CLLocationAccuracy = 65
+    private static let maximumTrackingHorizontalAccuracy: CLLocationAccuracy = 50
     private static let maximumSpeed: CLLocationSpeed = 12
     private static let minimumMovementSpeed: CLLocationSpeed = 0.35
     private static let signalTimeout: TimeInterval = 20
@@ -33,15 +33,16 @@ enum GPSPointFilter {
         motionState: MotionState,
         now: Date = .now
     ) -> Bool {
-        guard location.horizontalAccuracy >= 0,
+        guard CLLocationCoordinate2DIsValid(location.coordinate),
+              location.horizontalAccuracy >= 0,
               location.horizontalAccuracy <= maximumTrackingHorizontalAccuracy,
               location.timestamp >= sessionStart,
-              location.timestamp <= now.addingTimeInterval(5),
-              motionState != .stationary else {
+              location.timestamp <= now.addingTimeInterval(5) else {
             return false
         }
 
-        guard let previous else { return true }
+        guard let previous else { return hasReadyAccuracy(location) }
+        guard motionState != .stationary else { return false }
         let seconds = location.timestamp.timeIntervalSince(previous.timestamp)
         guard seconds > 0 else { return false }
 

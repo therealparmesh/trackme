@@ -72,7 +72,7 @@ extension LocationTracker {
 
     func locationManagerDidResumeLocationUpdates(_ manager: CLLocationManager) {
         if state == .tracking {
-            startsNewSegment = true
+            breakRouteForSignalGap()
             gpsStatus = .finding
             saveActiveDraft()
         }
@@ -90,9 +90,10 @@ extension LocationTracker {
         manager.startUpdatingLocation()
     }
 
-    func refreshSignalTimeout() {
+    func refreshSignalTimeout(now: Date = .now) {
         guard state == .tracking,
-              GPSPointFilter.signalTimedOut(since: lastRawLocationUpdateAt) else {
+              motionActivity.state(at: now) != .stationary,
+              GPSPointFilter.signalTimedOut(since: lastRawLocationUpdateAt, now: now) else {
             return
         }
         markSignalLost()

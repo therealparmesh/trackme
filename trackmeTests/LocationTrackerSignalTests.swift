@@ -95,7 +95,8 @@ final class LocationTrackerSignalTests: XCTestCase {
         tracker.locationManager(CLLocationManager(), didUpdateLocations: locations)
 
         XCTAssertEqual(tracker.distance, 0, accuracy: 0.001)
-        XCTAssertTrue(tracker.route.isEmpty)
+        XCTAssertEqual(tracker.route.count, 1)
+        XCTAssertTrue(tracker.route[0].startsNewSegment)
         XCTAssertEqual(tracker.gpsStatus, .ready)
     }
 
@@ -309,7 +310,7 @@ extension LocationTrackerSignalTests {
 }
 
 @MainActor
-private final class SignalTestLocationManager: LocationManagerClient {
+final class SignalTestLocationManager: LocationManagerClient {
     var authorizationStatus: CLAuthorizationStatus = .notDetermined
     weak var delegate: CLLocationManagerDelegate?
     var activityType: CLActivityType = .other
@@ -330,7 +331,7 @@ private final class SignalTestLocationManager: LocationManagerClient {
     }
 }
 
-private final class InMemoryActiveWorkoutDraftStore: ActiveWorkoutDraftStoring {
+final class InMemoryActiveWorkoutDraftStore: ActiveWorkoutDraftStoring {
     var draft: ActiveWorkoutDraft?
     var didClear = false
 
@@ -349,8 +350,8 @@ private final class InMemoryActiveWorkoutDraftStore: ActiveWorkoutDraftStoring {
     }
 }
 
-private final class SignalTestMotionActivityClient: MotionActivityClient {
-    private let state: MotionState
+final class SignalTestMotionActivityClient: MotionActivityClient {
+    var state: MotionState
     var startCalls = 0
     var stopCalls = 0
 
