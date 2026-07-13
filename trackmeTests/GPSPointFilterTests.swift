@@ -27,6 +27,68 @@ final class GPSPointFilterTests: XCTestCase {
         )
     }
 
+    func testTrackingRequiresAnAccurateAnchorForANewRouteSegment() {
+        let sessionStart = Date(timeIntervalSince1970: 1_000)
+        let weakAnchor = location(
+            latitude: 41,
+            horizontalAccuracy: 40,
+            timestamp: sessionStart.addingTimeInterval(1)
+        )
+
+        XCTAssertFalse(
+            GPSPointFilter.shouldAccept(
+                weakAnchor,
+                after: nil,
+                sessionStart: sessionStart,
+                motionState: .moving,
+                now: weakAnchor.timestamp
+            )
+        )
+    }
+
+    func testTrackingAcceptsAnAccurateStationaryAnchorWithoutPreviousLocation() {
+        let sessionStart = Date(timeIntervalSince1970: 1_000)
+        let anchor = location(
+            latitude: 41,
+            horizontalAccuracy: 10,
+            timestamp: sessionStart.addingTimeInterval(1)
+        )
+
+        XCTAssertTrue(
+            GPSPointFilter.shouldAccept(
+                anchor,
+                after: nil,
+                sessionStart: sessionStart,
+                motionState: .stationary,
+                now: anchor.timestamp
+            )
+        )
+    }
+
+    func testTrackingRejectsLocationsAboveWorkoutRouteAccuracyLimit() {
+        let sessionStart = Date(timeIntervalSince1970: 1_000)
+        let previous = location(
+            latitude: 41,
+            horizontalAccuracy: 10,
+            timestamp: sessionStart.addingTimeInterval(1)
+        )
+        let inaccurate = location(
+            latitude: 41.000_25,
+            horizontalAccuracy: 55,
+            timestamp: sessionStart.addingTimeInterval(13)
+        )
+
+        XCTAssertFalse(
+            GPSPointFilter.shouldAccept(
+                inaccurate,
+                after: previous,
+                sessionStart: sessionStart,
+                motionState: .moving,
+                now: inaccurate.timestamp
+            )
+        )
+    }
+
     func testTrackingRejectsAccurateFixWhenSpeedCouldBeStationary() {
         let sessionStart = Date(timeIntervalSince1970: 1_000)
         let previous = location(

@@ -8,7 +8,7 @@ final class WorkoutSnapshotTests: XCTestCase {
         XCTAssertTrue(snapshot(distance: 25).hasMeaningfulDistance)
     }
 
-    func testAveragePaceUsesMovingDuration() {
+    func testAveragePaceUsesElapsedDuration() {
         XCTAssertEqual(snapshot(duration: 600, distance: 1_609.344).averagePace, 600, accuracy: 0.001)
     }
 

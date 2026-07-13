@@ -2,7 +2,7 @@ import CoreLocation
 
 extension LocationTracker {
     var isReadyToStart: Bool {
-        state == .idle && isAuthorized && gpsStatus == .ready && lastReadyLocation != nil && !isRequestingAuthorization
+        state == .idle && isAuthorized && gpsStatus == .ready && hasRecentReadyFix && !isRequestingAuthorization
     }
 
     var hasMeaningfulWorkout: Bool {
