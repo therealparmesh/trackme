@@ -43,6 +43,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
     var lastAcceptedLocation: CLLocation?
     var lastReadyLocation: CLLocation?
     var lastRawLocationUpdateAt: Date?
+    var routeAnchorNotBefore: Date?
     var startDate: Date?
     private var pausedAt: Date?
     private var pausedDuration: TimeInterval = 0
@@ -169,6 +170,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         state = .paused
         pausedAt = now
         lastAcceptedLocation = nil
+        routeAnchorNotBefore = nil
         stopTimers()
         motionActivity.stop()
         manager.stopUpdatingLocation()
@@ -178,15 +180,16 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
     func resume() {
         guard state == .paused else { return }
         errorMessage = nil
+        let resumedAt = Date()
         if let pausedAt {
-            let resumedAt = Date()
             pausedDuration += resumedAt.timeIntervalSince(pausedAt)
             pauses.append(WorkoutPause(startDate: pausedAt, endDate: resumedAt))
         }
         self.pausedAt = nil
         startsNewSegment = true
+        routeAnchorNotBefore = resumedAt
         gpsStatus = .finding
-        lastRawLocationUpdateAt = .now
+        lastRawLocationUpdateAt = resumedAt
         state = .tracking
         beginLocationUpdatesIfAuthorized(background: true)
         motionActivity.start()
@@ -279,6 +282,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         pausedDuration = 0
         pauses = []
         startsNewSegment = true
+        routeAnchorNotBefore = nil
         lastRawLocationUpdateAt = nil
         elapsed = 0
         distance = 0
@@ -328,16 +332,20 @@ extension LocationTracker {
         lastAcceptedLocation = draft.lastAcceptedLocation?.location
         lastReadyLocation = draft.lastReadyLocation?.location ?? lastAcceptedLocation
         lastRawLocationUpdateAt = draft.lastRawLocationUpdateAt
+        routeAnchorNotBefore = nil
         errorMessage = nil
 
         switch draft.state {
         case .tracking:
             state = .tracking
             if GPSPointFilter.signalTimedOut(since: lastRawLocationUpdateAt, now: now) {
-                lastAcceptedLocation = nil
-                startsNewSegment = true
-                gpsStatus = .lost
+                breakRouteForSignalGap(notBefore: now)
+                lastRawLocationUpdateAt = now
+                gpsStatus = .finding
             } else {
+                if lastAcceptedLocation == nil {
+                    routeAnchorNotBefore = now
+                }
                 gpsStatus = .finding
             }
             updateElapsed(at: now)

@@ -138,6 +138,28 @@ final class WorkoutMetricsTests: XCTestCase {
         )
     }
 
+    func testReadyFixRejectsInvalidCoordinate() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let invalid = location(
+            coordinate: CLLocationCoordinate2D(latitude: 100, longitude: -87),
+            altitude: 0,
+            timestamp: now
+        )
+
+        XCTAssertFalse(GPSPointFilter.isReadyFix(invalid, now: now))
+    }
+
+    func testTrackingSignalSampleUsesTheShorterSignalTimeoutWindow() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let recentlyReady = location(
+            latitude: 41,
+            timestamp: now.addingTimeInterval(-25)
+        )
+
+        XCTAssertTrue(GPSPointFilter.isReadyFix(recentlyReady, now: now))
+        XCTAssertFalse(GPSPointFilter.isCurrentSignalSample(recentlyReady, now: now))
+    }
+
     func testTinyGPSOnlyWorkoutFinalizesAtZero() {
         let route = [
             routePoint(latitude: 41, startsNewSegment: true),

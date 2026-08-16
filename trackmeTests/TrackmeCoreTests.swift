@@ -104,13 +104,14 @@ final class TrackmeCoreTests: XCTestCase {
 
         let first = location(latitude: 41, timestamp: sessionStart.addingTimeInterval(1))
         let second = location(latitude: 41.000_1, timestamp: sessionStart.addingTimeInterval(11))
-        tracker.locationManager(CLLocationManager(), didUpdateLocations: [first, second])
+        tracker.processLocationUpdates([first, second], receivedAt: second.timestamp)
         let distanceBeforeGap = tracker.distance
 
-        tracker.lastRawLocationUpdateAt = sessionStart.addingTimeInterval(-30)
-        tracker.refreshSignalTimeout()
+        let signalLossAt = sessionStart.addingTimeInterval(35)
+        tracker.lastRawLocationUpdateAt = signalLossAt.addingTimeInterval(-30)
+        tracker.refreshSignalTimeout(now: signalLossAt)
         let afterGap = location(latitude: 41.01, timestamp: sessionStart.addingTimeInterval(40))
-        tracker.locationManager(CLLocationManager(), didUpdateLocations: [afterGap])
+        tracker.processLocationUpdates([afterGap], receivedAt: afterGap.timestamp)
 
         XCTAssertEqual(tracker.distance, distanceBeforeGap, accuracy: 0.001)
         XCTAssertEqual(tracker.route.routeSegments.count, 2)

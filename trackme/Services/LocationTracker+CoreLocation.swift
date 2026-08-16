@@ -23,21 +23,40 @@ extension LocationTracker {
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        processLocationUpdates(locations, receivedAt: .now)
+    }
+
+    func processLocationUpdates(_ locations: [CLLocation], receivedAt: Date) {
         guard state != .paused else { return }
-        lastRawLocationUpdateAt = .now
 
         if state == .idle {
-            updateReadiness(from: locations)
+            updateReadiness(from: locations, now: receivedAt)
             return
         }
 
-        for location in locations where isUsable(location) {
+        for location in locations where isUsable(location, receivedAt: receivedAt) {
             append(location)
         }
-        if let latestLocation = locations.last,
-           GPSPointFilter.hasReadyAccuracy(latestLocation) {
+
+        let latestCurrentLocation = locations.last {
+            GPSPointFilter.isCurrentSignalSample($0, now: receivedAt)
+        }
+        let latestReadyLocation = locations.last {
+            GPSPointFilter.isCurrentSignalSample($0, now: receivedAt)
+                && GPSPointFilter.hasReadyAccuracy($0)
+        }
+
+        if let latestCurrentLocation {
+            lastRawLocationUpdateAt = receivedAt
+            errorMessage = nil
+        }
+        if let latestReadyLocation {
+            lastReadyLocation = latestReadyLocation
+        }
+        if let latestCurrentLocation,
+           GPSPointFilter.hasReadyAccuracy(latestCurrentLocation) {
             gpsStatus = .ready
-        } else {
+        } else if latestCurrentLocation != nil {
             markSignalWeak()
         }
         saveActiveDraft()
@@ -45,6 +64,7 @@ extension LocationTracker {
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         guard let locationError = error as? CLError else {
+            markSignalWeak()
             errorMessage = "Your location could not be updated. Try again."
             saveActiveDraft()
             return
@@ -65,14 +85,11 @@ extension LocationTracker {
         saveActiveDraft()
     }
 
-    func locationManagerDidPauseLocationUpdates(_ manager: CLLocationManager) {
-        markSignalLost()
-        saveActiveDraft()
-    }
-
     func locationManagerDidResumeLocationUpdates(_ manager: CLLocationManager) {
         if state == .tracking {
+            let now = Date.now
             breakRouteForSignalGap()
+            lastRawLocationUpdateAt = now
             gpsStatus = .finding
             saveActiveDraft()
         }
@@ -96,12 +113,12 @@ extension LocationTracker {
               GPSPointFilter.signalTimedOut(since: lastRawLocationUpdateAt, now: now) else {
             return
         }
-        markSignalLost()
+        markSignalLost(at: now)
         saveActiveDraft()
     }
 
-    private func updateReadiness(from locations: [CLLocation]) {
-        if let readyLocation = locations.last(where: { GPSPointFilter.isReadyFix($0) }) {
+    private func updateReadiness(from locations: [CLLocation], now: Date) {
+        if let readyLocation = locations.last(where: { GPSPointFilter.isReadyFix($0, now: now) }) {
             lastReadyLocation = readyLocation
             gpsStatus = .ready
             scheduleReadinessExpiry()
@@ -114,13 +131,18 @@ extension LocationTracker {
         }
     }
 
-    private func isUsable(_ location: CLLocation) -> Bool {
+    private func isUsable(_ location: CLLocation, receivedAt: Date) -> Bool {
         guard let startDate else { return false }
+        if let routeAnchorNotBefore, lastAcceptedLocation == nil,
+           location.timestamp < routeAnchorNotBefore {
+            return false
+        }
         return GPSPointFilter.shouldAccept(
             location,
             after: lastAcceptedLocation,
             sessionStart: startDate,
-            motionState: motionActivity.state(at: location.timestamp)
+            motionState: motionActivity.state(at: location.timestamp),
+            now: receivedAt
         )
     }
 
@@ -128,10 +150,10 @@ extension LocationTracker {
         if let previous = lastAcceptedLocation {
             distance += HorizontalDistanceCalculator.distance(from: previous, to: location)
         }
-        lastReadyLocation = location
         lastAcceptedLocation = location
         route.append(RoutePoint(location: location, startsNewSegment: startsNewSegment))
         startsNewSegment = false
+        routeAnchorNotBefore = nil
     }
 
     private func markSignalWeak() {
@@ -139,15 +161,18 @@ extension LocationTracker {
         gpsStatus = .weak
     }
 
-    private func markSignalLost() {
+    private func markSignalLost(at date: Date = .now) {
         guard state != .paused else { return }
         if state == .tracking {
-            breakRouteForSignalGap()
+            breakRouteForSignalGap(notBefore: date)
         }
         gpsStatus = .lost
     }
 
-    private func breakRouteForSignalGap() {
+    func breakRouteForSignalGap(notBefore date: Date? = nil) {
+        if let date, routeAnchorNotBefore == nil {
+            routeAnchorNotBefore = date
+        }
         lastAcceptedLocation = nil
         startsNewSegment = true
     }

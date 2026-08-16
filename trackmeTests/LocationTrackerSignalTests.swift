@@ -39,7 +39,7 @@ final class LocationTrackerSignalTests: XCTestCase {
 
         let first = location(latitude: 41, timestamp: sessionStart.addingTimeInterval(1))
         let second = location(latitude: 41.000_2, timestamp: sessionStart.addingTimeInterval(15))
-        tracker.locationManager(CLLocationManager(), didUpdateLocations: [first, second])
+        tracker.processLocationUpdates([first, second], receivedAt: second.timestamp)
         let distanceBeforeWeakSample = tracker.distance
 
         let weak = location(
@@ -47,17 +47,96 @@ final class LocationTrackerSignalTests: XCTestCase {
             horizontalAccuracy: 100,
             timestamp: sessionStart.addingTimeInterval(18)
         )
-        tracker.locationManager(CLLocationManager(), didUpdateLocations: [weak])
+        tracker.processLocationUpdates([weak], receivedAt: weak.timestamp)
 
         XCTAssertEqual(tracker.gpsStatus, .weak)
         XCTAssertEqual(tracker.distance, distanceBeforeWeakSample, accuracy: 0.001)
 
         let third = location(latitude: 41.000_4, timestamp: sessionStart.addingTimeInterval(30))
-        tracker.locationManager(CLLocationManager(), didUpdateLocations: [third])
+        tracker.processLocationUpdates([third], receivedAt: third.timestamp)
 
         XCTAssertEqual(tracker.gpsStatus, .ready)
         XCTAssertGreaterThan(tracker.distance, distanceBeforeWeakSample)
         XCTAssertEqual(tracker.route.routeSegments.count, 1)
+    }
+
+    func testModerateRoutePointDoesNotOverwriteLastAccurateFix() {
+        let sessionStart = Date(timeIntervalSince1970: 1_000)
+        let tracker = LocationTracker(
+            manager: SignalTestLocationManager(),
+            activeDraftStore: InMemoryActiveWorkoutDraftStore(),
+            motionActivity: SignalTestMotionActivityClient(state: .moving)
+        )
+        tracker.state = .tracking
+        tracker.startDate = sessionStart
+
+        let accurate = location(
+            latitude: 41,
+            horizontalAccuracy: 5,
+            timestamp: sessionStart.addingTimeInterval(1)
+        )
+        let moderate = location(
+            latitude: 41.000_25,
+            horizontalAccuracy: 45,
+            timestamp: sessionStart.addingTimeInterval(13)
+        )
+
+        tracker.processLocationUpdates([accurate, moderate], receivedAt: moderate.timestamp)
+
+        XCTAssertEqual(tracker.route.count, 2)
+        XCTAssertEqual(tracker.lastReadyLocation?.timestamp, accurate.timestamp)
+        XCTAssertEqual(tracker.gpsStatus, .weak)
+    }
+
+    func testStaleAccurateCallbackDoesNotRecoverSignalOrBecomeRouteAnchor() {
+        let sessionStart = Date(timeIntervalSince1970: 1_000)
+        let lossAt = sessionStart.addingTimeInterval(60)
+        let tracker = LocationTracker(
+            manager: SignalTestLocationManager(),
+            activeDraftStore: InMemoryActiveWorkoutDraftStore(),
+            motionActivity: SignalTestMotionActivityClient(state: .moving)
+        )
+        tracker.state = .tracking
+        tracker.startDate = sessionStart
+        tracker.gpsStatus = .ready
+        tracker.lastRawLocationUpdateAt = lossAt.addingTimeInterval(-30)
+        let anchor = location(latitude: 41, timestamp: sessionStart.addingTimeInterval(10))
+        tracker.lastAcceptedLocation = anchor
+        tracker.route = [RoutePoint(location: anchor, startsNewSegment: true)]
+        tracker.refreshSignalTimeout(now: lossAt)
+
+        let stale = location(
+            latitude: 41,
+            timestamp: lossAt.addingTimeInterval(-40)
+        )
+        tracker.processLocationUpdates([stale], receivedAt: lossAt)
+
+        XCTAssertEqual(tracker.gpsStatus, .lost)
+        XCTAssertEqual(tracker.lastRawLocationUpdateAt, lossAt.addingTimeInterval(-30))
+        XCTAssertEqual(tracker.route.count, 1)
+        XCTAssertNil(tracker.lastAcceptedLocation)
+    }
+
+    func testFreshFixClearsTransientLocationError() {
+        let sessionStart = Date(timeIntervalSince1970: 1_000)
+        let tracker = LocationTracker(
+            manager: SignalTestLocationManager(),
+            activeDraftStore: InMemoryActiveWorkoutDraftStore(),
+            motionActivity: SignalTestMotionActivityClient(state: .moving)
+        )
+        tracker.state = .tracking
+        tracker.startDate = sessionStart
+        tracker.gpsStatus = .weak
+        tracker.errorMessage = "Temporary location failure"
+
+        let recovered = location(
+            latitude: 41,
+            timestamp: sessionStart.addingTimeInterval(1)
+        )
+        tracker.processLocationUpdates([recovered], receivedAt: recovered.timestamp)
+
+        XCTAssertNil(tracker.errorMessage)
+        XCTAssertEqual(tracker.gpsStatus, .ready)
     }
 
     func testStationaryIndoorDriftDoesNotAccumulateDistance() {
@@ -92,7 +171,7 @@ final class LocationTrackerSignalTests: XCTestCase {
             )
         ]
 
-        tracker.locationManager(CLLocationManager(), didUpdateLocations: locations)
+        tracker.processLocationUpdates(locations, receivedAt: locations.last!.timestamp)
 
         XCTAssertEqual(tracker.distance, 0, accuracy: 0.001)
         XCTAssertEqual(tracker.route.count, 1)
@@ -155,7 +234,7 @@ final class LocationTrackerSignalTests: XCTestCase {
 
         let first = location(latitude: 41, timestamp: sessionStart.addingTimeInterval(1))
         let second = location(latitude: 41.000_2, timestamp: sessionStart.addingTimeInterval(15))
-        tracker.locationManager(CLLocationManager(), didUpdateLocations: [first, second])
+        tracker.processLocationUpdates([first, second], receivedAt: second.timestamp)
 
         let draft = draftStore.draft
         XCTAssertEqual(draft?.state, .tracking)
@@ -209,6 +288,8 @@ final class LocationTrackerSignalTests: XCTestCase {
         XCTAssertEqual(manager.startUpdatingLocationCalls, 1)
         XCTAssertTrue(manager.allowsBackgroundLocationUpdates)
         XCTAssertEqual(motionActivity.startCalls, 1)
+        XCTAssertEqual(tracker.gpsStatus, .finding)
+        XCTAssertEqual(tracker.lastRawLocationUpdateAt, sessionStart.addingTimeInterval(120))
 
         tracker.discard()
         XCTAssertEqual(motionActivity.stopCalls, 1)
@@ -248,7 +329,7 @@ final class LocationTrackerSignalTests: XCTestCase {
 
         tracker.restoreActiveWorkoutIfAvailable(now: sessionStart.addingTimeInterval(90))
         let resumedPoint = location(latitude: 41.01, timestamp: sessionStart.addingTimeInterval(95))
-        tracker.locationManager(CLLocationManager(), didUpdateLocations: [resumedPoint])
+        tracker.processLocationUpdates([resumedPoint], receivedAt: resumedPoint.timestamp)
 
         XCTAssertEqual(tracker.distance, 42, accuracy: 0.001)
         XCTAssertEqual(tracker.route.count, 2)
