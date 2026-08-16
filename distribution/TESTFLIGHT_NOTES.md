@@ -10,6 +10,7 @@ Please test the core walk and run flow:
 - Review recent history and trends
 - Confirm Apple Health sync adds completed workouts when permission is granted
 - Delete a synced workout from its detail screen and confirm its Apple Health workout, distance, and route are removed
-- If GPS signal is weak or interrupted, confirm tracking resumes in a new route segment without a distance jump
+- If GPS briefly becomes weak, confirm accepted points continue the existing route without a discontinuity
+- If GPS is lost or interrupted, confirm recovery starts a new route segment without a distance jump
 
 Please include the iPhone model, iOS version, and any context that helps explain the issue.
