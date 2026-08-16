@@ -25,4 +25,4 @@ The Start button is disabled until a recent, accurate location fix is available.
 
 Payments:
 
-Version 1.0.2 has no purchases, subscriptions, paywall, or account system.
+Version 1.0.3 has no purchases, subscriptions, paywall, or account system.
