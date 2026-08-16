@@ -62,8 +62,16 @@ enum GPSPointFilter {
     }
 
     static func hasReadyAccuracy(_ location: CLLocation) -> Bool {
-        location.horizontalAccuracy >= 0
+        CLLocationCoordinate2DIsValid(location.coordinate)
+            && location.horizontalAccuracy >= 0
             && location.horizontalAccuracy <= maximumReadyHorizontalAccuracy
+    }
+
+    static func isCurrentSignalSample(_ location: CLLocation, now: Date = .now) -> Bool {
+        CLLocationCoordinate2DIsValid(location.coordinate)
+            && location.horizontalAccuracy >= 0
+            && location.timestamp >= now.addingTimeInterval(-signalTimeout)
+            && location.timestamp <= now.addingTimeInterval(5)
     }
 
     static func signalTimedOut(since lastUpdateAt: Date?, now: Date = .now) -> Bool {
