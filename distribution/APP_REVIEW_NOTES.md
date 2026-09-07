@@ -21,8 +21,8 @@ Background location updates are enabled only while a workout is actively recordi
 
 Location Accuracy:
 
-The Start button is disabled until a recent, accurate location fix is available. During a workout, trackme combines Core Location with on-device Core Motion activity classification to reject stationary GPS drift without automatically pausing walking workouts. Each route segment begins from an accurate location anchor, and remaining stationary does not by itself report GPS loss. Motion activity is not stored or transmitted. If GPS signal becomes unavailable, trackme breaks route continuity and resumes from a new segment so distance is not inflated by a straight-line jump.
+The Start button is disabled until a recent, accurate location fix is available. Before a workout starts, READY expires 30 seconds after that fix was measured, including when a cached fix arrives late. During a workout, trackme combines Core Location with on-device Core Motion activity classification to reject stationary GPS drift without automatically pausing walking workouts. Each route segment begins from an accurate location anchor, and remaining stationary does not by itself report GPS loss. Motion activity is not stored or transmitted. If GPS signal becomes unavailable, trackme breaks route continuity and resumes from a new segment so distance is not inflated by a straight-line jump.
 
 Payments:
 
-Version 1.0.3 has no purchases, subscriptions, paywall, or account system.
+Version 1.0.4 has no purchases, subscriptions, paywall, or account system.
