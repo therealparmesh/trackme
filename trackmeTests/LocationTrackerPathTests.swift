@@ -66,7 +66,7 @@ final class LocationTrackerPathTests: XCTestCase {
     }
 
     func testSystemLocationResumeStartsANewDistanceSegment() {
-        let sessionStart = Date(timeIntervalSince1970: 1_000)
+        let sessionStart = Date.now.addingTimeInterval(-60)
         let manager = SignalTestLocationManager()
         let motionActivity = SignalTestMotionActivityClient(state: .moving)
         let tracker = LocationTracker(
@@ -82,7 +82,7 @@ final class LocationTrackerPathTests: XCTestCase {
         tracker.distance = 20
 
         tracker.locationManagerDidResumeLocationUpdates(CLLocationManager())
-        let resumed = location(latitude: 41.01, timestamp: sessionStart.addingTimeInterval(31))
+        let resumed = location(latitude: 41.01, timestamp: .now.addingTimeInterval(1))
         tracker.processLocationUpdates([resumed], receivedAt: resumed.timestamp)
 
         XCTAssertEqual(tracker.distance, 20, accuracy: 0.001)

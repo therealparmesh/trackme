@@ -160,6 +160,9 @@ final class WorkoutMetricsTests: XCTestCase {
         XCTAssertFalse(GPSPointFilter.isCurrentSignalSample(recentlyReady, now: now))
     }
 
+}
+
+extension WorkoutMetricsTests {
     func testTinyGPSOnlyWorkoutFinalizesAtZero() {
         let route = [
             routePoint(latitude: 41, startsNewSegment: true),

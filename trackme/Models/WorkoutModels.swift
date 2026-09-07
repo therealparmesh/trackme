@@ -105,6 +105,7 @@ struct ActiveWorkoutDraft: Codable {
     let lastAcceptedLocation: RoutePoint?
     let lastReadyLocation: RoutePoint?
     let lastRawLocationUpdateAt: Date?
+    var lastUsableLocationUpdateAt: Date?
 }
 
 struct WorkoutSnapshot: Identifiable {

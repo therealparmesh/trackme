@@ -34,31 +34,36 @@ extension LocationTracker {
             return
         }
 
-        for location in locations where isUsable(location, receivedAt: receivedAt) {
-            append(location)
+        guard let startDate else { return }
+        if lastUsableLocationUpdateAt == nil {
+            lastUsableLocationUpdateAt = lastRawLocationUpdateAt ?? startDate
         }
+        for location in locations {
+            guard GPSPointFilter.isValidSample(location, since: startDate, now: receivedAt),
+                  location.timestamp > (lastRawLocationUpdateAt ?? .distantPast),
+                  location.timestamp >= (routeAnchorNotBefore ?? startDate) else { continue }
 
-        let latestCurrentLocation = locations.last {
-            GPSPointFilter.isCurrentSignalSample($0, now: receivedAt)
+            // Check measurement times before advancing the signal clock so delayed
+            // batches preserve continuous routes without bridging missing fixes.
+            updateSignalTimeout(at: location.timestamp)
+            lastRawLocationUpdateAt = location.timestamp
+            if GPSPointFilter.hasTrackingAccuracy(location) {
+                lastUsableLocationUpdateAt = location.timestamp
+            }
+            if isUsable(location, receivedAt: receivedAt) {
+                append(location)
+            }
+            if GPSPointFilter.isCurrentSignalSample(location, now: receivedAt) {
+                errorMessage = nil
+                if GPSPointFilter.hasReadyAccuracy(location) {
+                    lastReadyLocation = location
+                    gpsStatus = .ready
+                } else {
+                    markSignalWeak()
+                }
+            }
         }
-        let latestReadyLocation = locations.last {
-            GPSPointFilter.isCurrentSignalSample($0, now: receivedAt)
-                && GPSPointFilter.hasReadyAccuracy($0)
-        }
-
-        if let latestCurrentLocation {
-            lastRawLocationUpdateAt = receivedAt
-            errorMessage = nil
-        }
-        if let latestReadyLocation {
-            lastReadyLocation = latestReadyLocation
-        }
-        if let latestCurrentLocation,
-           GPSPointFilter.hasReadyAccuracy(latestCurrentLocation) {
-            gpsStatus = .ready
-        } else if latestCurrentLocation != nil {
-            markSignalWeak()
-        }
+        updateSignalTimeout(at: receivedAt)
         saveActiveDraft()
     }
 
@@ -90,6 +95,8 @@ extension LocationTracker {
             let now = Date.now
             breakRouteForSignalGap()
             lastRawLocationUpdateAt = now
+            lastUsableLocationUpdateAt = now
+            lastStationaryAt = nil
             gpsStatus = .finding
             saveActiveDraft()
         }
@@ -108,20 +115,44 @@ extension LocationTracker {
     }
 
     func refreshSignalTimeout(now: Date = .now) {
-        guard state == .tracking,
-              motionActivity.state(at: now) != .stationary,
-              GPSPointFilter.signalTimedOut(since: lastRawLocationUpdateAt, now: now) else {
+        guard state == .tracking else { return }
+        updateSignalTimeout(at: now)
+        if gpsStatus == .lost {
+            saveActiveDraft()
+        }
+    }
+
+    func runSignalMonitor() async {
+        while !Task.isCancelled {
+            do {
+                try await Task.sleep(for: .seconds(5))
+            } catch {
+                return
+            }
+            refreshSignalTimeout()
+        }
+    }
+
+    private func updateSignalTimeout(at date: Date) {
+        let lastUsable = lastUsableLocationUpdateAt ?? lastRawLocationUpdateAt ?? startDate
+        // Stationary silence is expected with a distance filter. Explicitly poor
+        // fixes still time out, even when motion reports stationary.
+        if motionActivity.state(at: date) == .stationary,
+           (lastRawLocationUpdateAt ?? .distantPast) <= (lastUsable ?? .distantPast) {
+            lastStationaryAt = max(lastStationaryAt ?? date, date)
             return
         }
-        markSignalLost(at: now)
-        saveActiveDraft()
+        let timeoutReference = max(lastUsable ?? .distantPast, lastStationaryAt ?? .distantPast)
+        if GPSPointFilter.signalTimedOut(since: timeoutReference, now: date) {
+            markSignalLost(at: date)
+        }
     }
 
     private func updateReadiness(from locations: [CLLocation], now: Date) {
         if let readyLocation = locations.last(where: { GPSPointFilter.isReadyFix($0, now: now) }) {
             lastReadyLocation = readyLocation
             gpsStatus = .ready
-            scheduleReadinessExpiry()
+            scheduleReadinessExpiry(for: readyLocation)
         } else if locations.isEmpty {
             gpsStatus = .finding
             cancelReadinessExpiry()
@@ -177,15 +208,18 @@ extension LocationTracker {
         startsNewSegment = true
     }
 
-    private func scheduleReadinessExpiry() {
+    private func scheduleReadinessExpiry(for location: CLLocation) {
         readinessTask?.cancel()
+        let expiresAt = GPSPointFilter.readyFixExpiration(for: location)
         readinessTask = Task { [weak self] in
             do {
-                try await Task.sleep(for: .seconds(GPSPointFilter.readyFixLifetimeSeconds))
+                // Cached fixes have only the remainder of their lifetime left.
+                try await Task.sleep(for: .seconds(max(0, expiresAt.timeIntervalSinceNow)))
             } catch {
                 return
             }
-            guard let self, self.state == .idle, !self.hasRecentReadyFix else { return }
+            guard !Task.isCancelled, let self, self.state == .idle,
+                  self.gpsStatus == .ready, !self.hasRecentReadyFix else { return }
             self.gpsStatus = .finding
         }
     }

@@ -23,8 +23,8 @@ enum GPSPointFilter {
     private static let maximumSpeed: CLLocationSpeed = 12
     private static let minimumMovementSpeed: CLLocationSpeed = 0.35
     private static let signalTimeout: TimeInterval = 20
-    static let readyFixLifetimeSeconds = 30
-    private static let maximumReadyFixAge = TimeInterval(readyFixLifetimeSeconds)
+    private static let readyFixLifetime: TimeInterval = 30
+    private static let futureTimestampTolerance: TimeInterval = 5
 
     static func shouldAccept(
         _ location: CLLocation,
@@ -33,11 +33,8 @@ enum GPSPointFilter {
         motionState: MotionState,
         now: Date = .now
     ) -> Bool {
-        guard CLLocationCoordinate2DIsValid(location.coordinate),
-              location.horizontalAccuracy >= 0,
-              location.horizontalAccuracy <= maximumTrackingHorizontalAccuracy,
-              location.timestamp >= sessionStart,
-              location.timestamp <= now.addingTimeInterval(5) else {
+        guard isValidSample(location, since: sessionStart, now: now),
+              hasTrackingAccuracy(location) else {
             return false
         }
 
@@ -57,8 +54,12 @@ enum GPSPointFilter {
 
     static func isReadyFix(_ location: CLLocation, now: Date = .now) -> Bool {
         hasReadyAccuracy(location)
-            && location.timestamp >= now.addingTimeInterval(-maximumReadyFixAge)
-            && location.timestamp <= now.addingTimeInterval(5)
+            && now < readyFixExpiration(for: location)
+            && location.timestamp <= now.addingTimeInterval(futureTimestampTolerance)
+    }
+
+    static func readyFixExpiration(for location: CLLocation) -> Date {
+        location.timestamp.addingTimeInterval(readyFixLifetime)
     }
 
     static func hasReadyAccuracy(_ location: CLLocation) -> Bool {
@@ -68,10 +69,20 @@ enum GPSPointFilter {
     }
 
     static func isCurrentSignalSample(_ location: CLLocation, now: Date = .now) -> Bool {
+        isValidSample(location, since: now.addingTimeInterval(-signalTimeout), now: now)
+    }
+
+    static func hasTrackingAccuracy(_ location: CLLocation) -> Bool {
         CLLocationCoordinate2DIsValid(location.coordinate)
             && location.horizontalAccuracy >= 0
-            && location.timestamp >= now.addingTimeInterval(-signalTimeout)
-            && location.timestamp <= now.addingTimeInterval(5)
+            && location.horizontalAccuracy <= maximumTrackingHorizontalAccuracy
+    }
+
+    static func isValidSample(_ location: CLLocation, since date: Date, now: Date) -> Bool {
+        CLLocationCoordinate2DIsValid(location.coordinate)
+            && location.horizontalAccuracy >= 0
+            && location.timestamp >= date
+            && location.timestamp <= now.addingTimeInterval(futureTimestampTolerance)
     }
 
     static func signalTimedOut(since lastUpdateAt: Date?, now: Date = .now) -> Bool {

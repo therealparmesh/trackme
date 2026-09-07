@@ -15,6 +15,7 @@
 		1D409B48FFD6D6705BA64456 /* MotionActivityClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70888F155DC98129453E36CD /* MotionActivityClient.swift */; };
 		2435C2241D451239CC0BECBB /* TokyoTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F3454C15AD8D0F4143EA98C /* TokyoTheme.swift */; };
 		2AC336F29AED36AE388E3E90 /* MotionActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C5B18BE493035BC265CCCF /* MotionActivityTests.swift */; };
+		30515F85751F0827C160BE60 /* GPSTestDoubles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83155D63996FF922D6623870 /* GPSTestDoubles.swift */; };
 		3902EA5A60AF2E0F7B253CDD /* WorkoutMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED8EDDC5918E1200F8BB05E4 /* WorkoutMetrics.swift */; };
 		3E8D62A7D23DEC59401EF853 /* ActiveWorkoutDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FE5C83C04D436E73329D3D3 /* ActiveWorkoutDraftStore.swift */; };
 		42DA90921E1E22E6E2F60AB5 /* LocationTracker+CoreLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC16B2326727495FDD192616 /* LocationTracker+CoreLocation.swift */; };
@@ -30,10 +31,12 @@
 		8AFEBC650174DC9C78B7ECA5 /* RouteTrailStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2351EC5F6B7C7891E1D4874E /* RouteTrailStyle.swift */; };
 		8B03D7EB35F181CB476F1322 /* LocationTracker+Status.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9AD2902889E246BC97F4D03 /* LocationTracker+Status.swift */; };
 		8FAE957AE0788F1C79D83D5B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7F50A7FFDE61C0FF67A4F7 /* SettingsView.swift */; };
+		936345EBFDF7ED653B225DA3 /* GPSContinuityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35687B9510744853CE6F6F7B /* GPSContinuityTests.swift */; };
 		93C619CC7FD61868BB0433A5 /* LiveRouteMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13180EEF65C99F09DAF7928B /* LiveRouteMap.swift */; };
 		99E4E6916B649AD05ECEA696 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9573FC4465D2A3BB0441CA29 /* InsightsView.swift */; };
 		9C548E205493ABE0EC687109 /* TrackControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 715F957143AD3A0788FBF11A /* TrackControls.swift */; };
 		A876F3537C84E79D6A415E51 /* AppTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50709CAC5DE23FE87EEBE58B /* AppTab.swift */; };
+		B3A5B496682C84BFE58A76B8 /* GPSReadinessTimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3782E8182A8A933A795B057B /* GPSReadinessTimingTests.swift */; };
 		B71989917B55B6B982B3BF5B /* TrackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35AB80661B7E5C813CD3E1A8 /* TrackView.swift */; };
 		B90B6C4AEE235CAA4658FEF0 /* LocationTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44ACD41C9D162DBB0D3F23BB /* LocationTracker.swift */; };
 		BAC4F941A84258B04EBD4A12 /* TrackMapCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D350D05AD8665C24B78C48 /* TrackMapCamera.swift */; };
@@ -60,7 +63,9 @@
 		23FB4BDEAAACE5A17EDE036B /* TrackMapCameraTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackMapCameraTests.swift; sourceTree = "<group>"; };
 		24C35352E5890EA613AC35B5 /* TrackAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackAlert.swift; sourceTree = "<group>"; };
 		2FE5C83C04D436E73329D3D3 /* ActiveWorkoutDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkoutDraftStore.swift; sourceTree = "<group>"; };
+		35687B9510744853CE6F6F7B /* GPSContinuityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPSContinuityTests.swift; sourceTree = "<group>"; };
 		35AB80661B7E5C813CD3E1A8 /* TrackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackView.swift; sourceTree = "<group>"; };
+		3782E8182A8A933A795B057B /* GPSReadinessTimingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPSReadinessTimingTests.swift; sourceTree = "<group>"; };
 		3F3454C15AD8D0F4143EA98C /* TokyoTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokyoTheme.swift; sourceTree = "<group>"; };
 		41909E0ACDFAF5A10B9D3B88 /* WorkoutSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSnapshotTests.swift; sourceTree = "<group>"; };
 		44ACD41C9D162DBB0D3F23BB /* LocationTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationTracker.swift; sourceTree = "<group>"; };
@@ -75,6 +80,7 @@
 		6D54E80565367FFC81BFF194 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		70888F155DC98129453E36CD /* MotionActivityClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionActivityClient.swift; sourceTree = "<group>"; };
 		715F957143AD3A0788FBF11A /* TrackControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackControls.swift; sourceTree = "<group>"; };
+		83155D63996FF922D6623870 /* GPSTestDoubles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPSTestDoubles.swift; sourceTree = "<group>"; };
 		83DEC4F5C151761F36D7B7FD /* WorkoutMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMetricsTests.swift; sourceTree = "<group>"; };
 		8A3E64160E586A265BACDF4C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9400A8660D5B38F6658D0830 /* trackme.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = trackme.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -182,7 +188,10 @@
 		ED52E8A1D31968C0A56EA32F /* trackmeTests */ = {
 			isa = PBXGroup;
 			children = (
+				35687B9510744853CE6F6F7B /* GPSContinuityTests.swift */,
 				D947C7443C40E0C7D0D82B48 /* GPSPointFilterTests.swift */,
+				3782E8182A8A933A795B057B /* GPSReadinessTimingTests.swift */,
+				83155D63996FF922D6623870 /* GPSTestDoubles.swift */,
 				D185FC7D5AAAF41037F0A1BE /* LocationTrackerPathTests.swift */,
 				A9A351E752FBE5E9356182E0 /* LocationTrackerSignalTests.swift */,
 				63C5B18BE493035BC265CCCF /* MotionActivityTests.swift */,
@@ -320,7 +329,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				936345EBFDF7ED653B225DA3 /* GPSContinuityTests.swift in Sources */,
 				83BDC927C4D98D6F1AF26E98 /* GPSPointFilterTests.swift in Sources */,
+				B3A5B496682C84BFE58A76B8 /* GPSReadinessTimingTests.swift in Sources */,
+				30515F85751F0827C160BE60 /* GPSTestDoubles.swift in Sources */,
 				E92F2AFDB90A48E9D3D90940 /* LocationTrackerPathTests.swift in Sources */,
 				50405DD8BAB0C77B1E28A25B /* LocationTrackerSignalTests.swift in Sources */,
 				2AC336F29AED36AE388E3E90 /* MotionActivityTests.swift in Sources */,
