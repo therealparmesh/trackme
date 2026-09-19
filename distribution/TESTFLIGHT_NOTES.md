@@ -13,6 +13,10 @@ Please test the core walk and run flow:
 
 - Before starting, confirm READY expires 30 seconds after the last accurate
   location was measured, including when a cached location arrives late.
+- After finishing or discarding a workout, confirm READY still expires if no new
+  location arrives.
+- Before starting a workout, confirm a temporary location error disappears when
+  an accurate fix restores READY.
 - Leave an active workout stationary for several minutes, including with the
   screen locked, and confirm distance does not increase while elapsed time
   continues.
@@ -25,6 +29,14 @@ Please test the core walk and run flow:
   without a distance jump.
 - If GPS remains too inaccurate to record a route for more than 20 seconds,
   confirm recovery starts a new segment even if location updates kept arriving.
+
+## Permission Changes and Restoration
+
+- Pause a workout, turn off Location permission in Settings, and confirm Resume
+  keeps it paused; restore permission and confirm Resume works.
+- Reopen the app with an unfinished workout and Location permission off; confirm
+  the workout is preserved and paused until permission is restored and Resume is
+  tapped.
 
 ## Apple Health
 

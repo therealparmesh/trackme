@@ -326,34 +326,3 @@ extension LocationTrackerSignalTests {
         )
     }
 }
-
-extension LocationTrackerSignalTests {
-    func testMotionActivityFollowsWorkoutLifecycle() {
-        let manager = SignalTestLocationManager()
-        let motionActivity = SignalTestMotionActivityClient()
-        manager.authorizationStatus = .authorizedWhenInUse
-        let tracker = LocationTracker(
-            manager: manager,
-            activeDraftStore: InMemoryActiveWorkoutDraftStore(),
-            motionActivity: motionActivity
-        )
-        tracker.authorizationStatus = .authorizedWhenInUse
-        tracker.gpsStatus = .ready
-        tracker.lastReadyLocation = location(latitude: 41, timestamp: .now)
-
-        tracker.start()
-        XCTAssertEqual(tracker.state, .tracking)
-        XCTAssertEqual(motionActivity.startCalls, 1)
-
-        tracker.pause()
-        XCTAssertEqual(tracker.state, .paused)
-        XCTAssertEqual(motionActivity.stopCalls, 1)
-
-        tracker.resume()
-        XCTAssertEqual(tracker.state, .tracking)
-        XCTAssertEqual(motionActivity.startCalls, 2)
-
-        tracker.discard()
-        XCTAssertEqual(motionActivity.stopCalls, 2)
-    }
-}

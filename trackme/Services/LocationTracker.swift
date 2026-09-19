@@ -53,7 +53,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
     var startsNewSegment = true
     var gpsStatus: GPSStatus = .finding
     @ObservationIgnored private var clockTask: Task<Void, Never>?
-    @ObservationIgnored private var signalTask: Task<Void, Never>?
+    @ObservationIgnored var signalTask: Task<Void, Never>?
     @ObservationIgnored var readinessTask: Task<Void, Never>?
 
     var state: State = .idle
@@ -161,22 +161,23 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         saveActiveDraft()
     }
 
-    func pause() {
+    func pause(now: Date = .now) {
         guard state == .tracking else { return }
-        let now = Date()
         updateElapsed(at: now)
         state = .paused
         pausedAt = now
         lastAcceptedLocation = nil
         routeAnchorNotBefore = nil
-        stopTimers()
-        motionActivity.stop()
-        manager.stopUpdatingLocation()
+        stopUpdates()
         saveActiveDraft()
     }
 
     func resume() {
         guard state == .paused else { return }
+        guard isAuthorized else {
+            errorMessage = Self.locationAccessMessage
+            return
+        }
         errorMessage = nil
         let resumedAt = Date()
         if let pausedAt {
@@ -207,9 +208,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
             self.pausedAt = nil
         }
         updateElapsed(at: endDate)
-        manager.stopUpdatingLocation()
-        motionActivity.stop()
-        stopTimers()
+        stopUpdates()
 
         let path = WorkoutPathFilter.finalized(distance: distance, route: route)
         let elevationGain = ElevationGainCalculator.totalGain(from: path.route)
@@ -224,6 +223,7 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
             pauses: pauses
         )
         state = .idle
+        restoreIdleReadiness()
         return snapshot
     }
 
@@ -232,18 +232,16 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         clearSession()
         activeDraftStore.clear()
         errorMessage = nil
+        restoreIdleReadiness()
     }
 
     func discard() {
-        manager.stopUpdatingLocation()
-        motionActivity.stop()
+        stopUpdates()
         state = .idle
         clearSession()
         activeDraftStore.clear()
         errorMessage = nil
-        if isAuthorized {
-            gpsStatus = hasRecentReadyFix ? .ready : .finding
-        }
+        restoreIdleReadiness()
     }
 
     private func startClock() {
@@ -265,13 +263,6 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         guard let startDate else { return }
         let activePause = pausedAt.map { date.timeIntervalSince($0) } ?? 0
         elapsed = max(0, date.timeIntervalSince(startDate) - pausedDuration - activePause)
-    }
-
-    private func startSignalMonitor() {
-        signalTask?.cancel()
-        signalTask = Task { [weak self] in
-            await self?.runSignalMonitor()
-        }
     }
 
     private func clearSession() {
@@ -300,6 +291,12 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         readinessTask = nil
     }
 
+    private func stopUpdates() {
+        stopTimers()
+        motionActivity.stop()
+        manager.stopUpdatingLocation()
+    }
+
     static let locationAccessMessage =
         "Location access is off. Allow it in iPhone Settings to map and measure your workout."
 }
@@ -325,28 +322,30 @@ extension LocationTracker {
             ?? lastAcceptedLocation?.timestamp ?? lastReadyLocation?.timestamp
         lastStationaryAt = nil
         routeAnchorNotBefore = nil
-        errorMessage = nil
+        errorMessage = isAuthorized ? nil : Self.locationAccessMessage
 
         switch draft.state {
         case .tracking:
             state = .tracking
+            guard isAuthorized else {
+                pause(now: now)
+                return true
+            }
             if GPSPointFilter.signalTimedOut(since: lastUsableLocationUpdateAt, now: now) {
                 breakRouteForSignalGap(notBefore: now)
                 lastRawLocationUpdateAt = now
                 lastUsableLocationUpdateAt = now
-                gpsStatus = .finding
-            } else {
-                if lastAcceptedLocation == nil {
-                    routeAnchorNotBefore = now
-                }
-                gpsStatus = .finding
+            } else if lastAcceptedLocation == nil {
+                routeAnchorNotBefore = now
             }
+            gpsStatus = .finding
             updateElapsed(at: now)
             beginLocationUpdatesIfAuthorized(background: true)
             motionActivity.start()
             startClock()
             startSignalMonitor()
         case .paused:
+            stopUpdates()
             state = .paused
             gpsStatus = .weak
             updateElapsed(at: now)

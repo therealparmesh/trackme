@@ -50,7 +50,13 @@ extension LocationTracker {
             if GPSPointFilter.hasTrackingAccuracy(location) {
                 lastUsableLocationUpdateAt = location.timestamp
             }
-            if isUsable(location, receivedAt: receivedAt) {
+            if GPSPointFilter.shouldAccept(
+                location,
+                after: lastAcceptedLocation,
+                sessionStart: startDate,
+                motionState: motionActivity.state(at: location.timestamp),
+                now: receivedAt
+            ) {
                 append(location)
             }
             if GPSPointFilter.isCurrentSignalSample(location, now: receivedAt) {
@@ -122,14 +128,18 @@ extension LocationTracker {
         }
     }
 
-    func runSignalMonitor() async {
-        while !Task.isCancelled {
-            do {
-                try await Task.sleep(for: .seconds(5))
-            } catch {
-                return
+    func startSignalMonitor() {
+        signalTask?.cancel()
+        signalTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(for: .seconds(5))
+                } catch {
+                    return
+                }
+                guard let self else { return }
+                self.refreshSignalTimeout()
             }
-            refreshSignalTimeout()
         }
     }
 
@@ -151,6 +161,9 @@ extension LocationTracker {
     private func updateReadiness(from locations: [CLLocation], now: Date) {
         if let readyLocation = locations.last(where: { GPSPointFilter.isReadyFix($0, now: now) }) {
             lastReadyLocation = readyLocation
+            if isAuthorized {
+                errorMessage = nil
+            }
             gpsStatus = .ready
             scheduleReadinessExpiry(for: readyLocation)
         } else if locations.isEmpty {
@@ -160,21 +173,6 @@ extension LocationTracker {
             gpsStatus = .weak
             cancelReadinessExpiry()
         }
-    }
-
-    private func isUsable(_ location: CLLocation, receivedAt: Date) -> Bool {
-        guard let startDate else { return false }
-        if let routeAnchorNotBefore, lastAcceptedLocation == nil,
-           location.timestamp < routeAnchorNotBefore {
-            return false
-        }
-        return GPSPointFilter.shouldAccept(
-            location,
-            after: lastAcceptedLocation,
-            sessionStart: startDate,
-            motionState: motionActivity.state(at: location.timestamp),
-            now: receivedAt
-        )
     }
 
     private func append(_ location: CLLocation) {
@@ -206,6 +204,17 @@ extension LocationTracker {
         }
         lastAcceptedLocation = nil
         startsNewSegment = true
+    }
+
+    func restoreIdleReadiness() {
+        guard state == .idle, isAuthorized else { return }
+        if let lastReadyLocation, GPSPointFilter.isReadyFix(lastReadyLocation) {
+            gpsStatus = .ready
+            scheduleReadinessExpiry(for: lastReadyLocation)
+        } else {
+            gpsStatus = .finding
+            cancelReadinessExpiry()
+        }
     }
 
     private func scheduleReadinessExpiry(for location: CLLocation) {
