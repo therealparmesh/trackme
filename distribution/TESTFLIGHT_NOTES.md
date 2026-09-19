@@ -4,6 +4,10 @@ Please test the core walk and run flow:
 
 - Wait for READY, then start, pause, resume, and finish a workout
 - Before starting, confirm READY expires 30 seconds after the last accurate location was measured, including when a cached location arrives late
+- After finishing or discarding a workout, confirm READY still expires if no new location arrives
+- Pause a workout, turn off Location permission in Settings, and confirm Resume keeps it paused; restore permission and confirm Resume works
+- Reopen the app with an unfinished workout and Location permission off; confirm the workout is preserved and paused until permission is restored and Resume is tapped
+- Before starting a workout, confirm a temporary location error disappears when an accurate fix restores READY
 - Allow Motion & Fitness access when prompted after starting a workout
 - Leave an active workout stationary for several minutes, including with the screen locked, and confirm distance does not increase while elapsed time continues
 - Start a workout while stationary, then begin walking and confirm route and distance tracking resume from the starting location

@@ -91,8 +91,10 @@ final class LocationTrackerPathTests: XCTestCase {
     }
 
     func testManualResumeIgnoresLocationsCapturedDuringThePause() throws {
+        let manager = SignalTestLocationManager()
+        manager.authorizationStatus = .authorizedWhenInUse
         let tracker = LocationTracker(
-            manager: SignalTestLocationManager(),
+            manager: manager,
             activeDraftStore: InMemoryActiveWorkoutDraftStore(),
             motionActivity: SignalTestMotionActivityClient(state: .moving)
         )
