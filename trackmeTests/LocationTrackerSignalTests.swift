@@ -200,9 +200,12 @@ extension LocationTrackerSignalTests {
     func testDiscardStopsAndClearsActiveWorkout() {
         let sessionStart = Date(timeIntervalSince1970: 1_000)
         let manager = SignalTestLocationManager()
+        let motionActivity = SignalTestMotionActivityClient()
         let draftStore = InMemoryActiveWorkoutDraftStore()
         manager.authorizationStatus = .authorizedWhenInUse
-        let tracker = LocationTracker(manager: manager, activeDraftStore: draftStore)
+        let tracker = LocationTracker(
+            manager: manager, activeDraftStore: draftStore, motionActivity: motionActivity
+        )
         tracker.authorizationStatus = .authorizedWhenInUse
         tracker.state = .tracking
         tracker.startDate = sessionStart
@@ -223,6 +226,7 @@ extension LocationTrackerSignalTests {
         XCTAssertNil(draftStore.draft)
         XCTAssertTrue(draftStore.didClear)
         XCTAssertEqual(manager.stopUpdatingLocationCalls, 1)
+        XCTAssertEqual(motionActivity.stopCalls, 1)
     }
 
     func testActiveWorkoutDraftPersistsLocationProgress() {
@@ -276,7 +280,6 @@ extension LocationTrackerSignalTests {
             activeDraftStore: draftStore,
             motionActivity: motionActivity
         )
-        tracker.authorizationStatus = .authorizedWhenInUse
 
         let restored = tracker.restoreActiveWorkoutIfAvailable(now: sessionStart.addingTimeInterval(120))
 
@@ -294,44 +297,7 @@ extension LocationTrackerSignalTests {
         XCTAssertEqual(tracker.gpsStatus, .finding)
         XCTAssertEqual(tracker.lastRawLocationUpdateAt, sessionStart.addingTimeInterval(120))
 
-        tracker.discard()
-        XCTAssertEqual(motionActivity.stopCalls, 1)
-    }
-
-    func testRestoredStaleWorkoutStartsNewRouteSegmentWithoutGuessingDistance() {
-        let sessionStart = Date(timeIntervalSince1970: 1_000)
-        let manager = SignalTestLocationManager()
-        let motionActivity = SignalTestMotionActivityClient(state: .moving)
-        let draftStore = InMemoryActiveWorkoutDraftStore()
-        let lastPoint = RoutePoint(
-            location: location(latitude: 41, timestamp: sessionStart.addingTimeInterval(10)),
-            startsNewSegment: true
-        )
-        draftStore.draft = ActiveWorkoutDraft(
-            state: .tracking,
-            activity: .walk,
-            startDate: sessionStart,
-            pausedAt: nil,
-            pausedDuration: 0,
-            pauses: [],
-            startsNewSegment: false,
-            elapsed: 10,
-            distance: 42,
-            route: [lastPoint],
-            lastAcceptedLocation: lastPoint,
-            lastReadyLocation: lastPoint,
-            lastRawLocationUpdateAt: sessionStart.addingTimeInterval(10)
-        )
-        manager.authorizationStatus = .authorizedWhenInUse
-        let tracker = LocationTracker(
-            manager: manager,
-            activeDraftStore: draftStore,
-            motionActivity: motionActivity
-        )
-        tracker.authorizationStatus = .authorizedWhenInUse
-
-        tracker.restoreActiveWorkoutIfAvailable(now: sessionStart.addingTimeInterval(90))
-        let resumedPoint = location(latitude: 41.01, timestamp: sessionStart.addingTimeInterval(95))
+        let resumedPoint = location(latitude: 41.01, timestamp: sessionStart.addingTimeInterval(125))
         tracker.processLocationUpdates([resumedPoint], receivedAt: resumedPoint.timestamp)
 
         XCTAssertEqual(tracker.distance, 42, accuracy: 0.001)
@@ -339,13 +305,12 @@ extension LocationTrackerSignalTests {
         XCTAssertTrue(tracker.route[1].startsNewSegment)
 
         tracker.discard()
+        XCTAssertEqual(motionActivity.stopCalls, 1)
     }
 
     private func location(
         latitude: Double,
         horizontalAccuracy: CLLocationAccuracy = 5,
-        speed: CLLocationSpeed = 1.2,
-        speedAccuracy: CLLocationSpeedAccuracy = 0.2,
         timestamp: Date
     ) -> CLLocation {
         CLLocation(
@@ -355,8 +320,8 @@ extension LocationTrackerSignalTests {
             verticalAccuracy: 5,
             course: -1,
             courseAccuracy: -1,
-            speed: speed,
-            speedAccuracy: speedAccuracy,
+            speed: 1.2,
+            speedAccuracy: 0.2,
             timestamp: timestamp
         )
     }

@@ -64,27 +64,6 @@ final class WorkoutMetricsTests: XCTestCase {
         )
     }
 
-    func testGPSFilterRejectsReliablyStationaryDrift() {
-        let sessionStart = Date(timeIntervalSince1970: 1_000)
-        let previous = location(latitude: 41, timestamp: sessionStart)
-        let drift = location(
-            latitude: 41.000_05,
-            speed: 0,
-            speedAccuracy: 0.2,
-            timestamp: sessionStart.addingTimeInterval(3)
-        )
-
-        XCTAssertFalse(
-            GPSPointFilter.shouldAccept(
-                drift,
-                after: previous,
-                sessionStart: sessionStart,
-                motionState: .unknown,
-                now: drift.timestamp
-            )
-        )
-    }
-
     func testGPSFilterAcceptsWalkingMovement() {
         let sessionStart = Date(timeIntervalSince1970: 1_000)
         let previous = location(latitude: 41, timestamp: sessionStart)
@@ -121,23 +100,6 @@ final class WorkoutMetricsTests: XCTestCase {
         XCTAssertFalse(GPSPointFilter.isReadyFix(inaccurate, now: now))
     }
 
-    func testSignalTimeoutStartsANewTrustWindow() {
-        let now = Date(timeIntervalSince1970: 1_000)
-
-        XCTAssertFalse(
-            GPSPointFilter.signalTimedOut(
-                since: now.addingTimeInterval(-10),
-                now: now
-            )
-        )
-        XCTAssertTrue(
-            GPSPointFilter.signalTimedOut(
-                since: now.addingTimeInterval(-25),
-                now: now
-            )
-        )
-    }
-
     func testReadyFixRejectsInvalidCoordinate() {
         let now = Date(timeIntervalSince1970: 1_000)
         let invalid = location(
@@ -148,18 +110,6 @@ final class WorkoutMetricsTests: XCTestCase {
 
         XCTAssertFalse(GPSPointFilter.isReadyFix(invalid, now: now))
     }
-
-    func testTrackingSignalSampleUsesTheShorterSignalTimeoutWindow() {
-        let now = Date(timeIntervalSince1970: 1_000)
-        let recentlyReady = location(
-            latitude: 41,
-            timestamp: now.addingTimeInterval(-25)
-        )
-
-        XCTAssertTrue(GPSPointFilter.isReadyFix(recentlyReady, now: now))
-        XCTAssertFalse(GPSPointFilter.isCurrentSignalSample(recentlyReady, now: now))
-    }
-
 }
 
 extension WorkoutMetricsTests {

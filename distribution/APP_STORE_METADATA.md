@@ -12,13 +12,16 @@
 
 ## Promotional Text
 
-Track walks and runs with a clean live map, simple summaries, and private on-device history.
+Track walks and runs with a clean live map, simple summaries, and private
+on-device history.
 
 ## Description
 
 trackme is a minimal walk and run tracker for iPhone.
 
-Start a workout, follow your route on a clean live map, and finish with an easy summary. History helps you look back across recent days, weeks, and months without turning movement into another noisy feed.
+Start a workout, follow your route on a clean live map, and finish with an easy
+summary. History helps you look back across recent days, weeks, and months
+without turning movement into another noisy feed.
 
 trackme keeps the experience focused:
 
@@ -31,7 +34,10 @@ trackme keeps the experience focused:
 
 ## What's New
 
-Improves workout pause, resume, and recovery when location permission changes. The READY indicator now stays accurate after finishing or discarding a workout, and temporary location errors clear when GPS recovers. Includes GPS lifecycle and reliability improvements.
+Improves workout pause, resume, and recovery when location permission changes.
+The READY indicator now stays accurate after finishing or discarding a workout,
+and temporary location errors clear when GPS recovers. Includes GPS lifecycle
+and reliability improvements.
 
 ## Keywords
 
@@ -60,6 +66,11 @@ Upload three iPhone screenshots in this order:
 
 ## App Privacy Answer
 
-Data Not Collected, based on version 1.0.5 having no developer backend, analytics, advertising, or third-party SDKs. Workout and route history remain on the device. Motion activity is processed on device only to distinguish movement from stationary GPS drift. If the user enables Apple Health, trackme writes completed workouts, distance, and routes to Apple Health.
+Data Not Collected, based on version 1.0.5 having no developer backend,
+analytics, advertising, or third-party SDKs. Workout and route history remain on
+the device. Motion activity is processed on device only to distinguish movement
+from stationary GPS drift. If the user enables Apple Health, trackme writes
+completed workouts, distance, and routes to Apple Health.
 
-Re-evaluate this answer before every submission if networking, analytics, crash reporting, advertising, accounts, or cloud sync are added.
+Re-evaluate this answer before every submission if networking, analytics, crash
+reporting, advertising, accounts, or cloud sync are added.

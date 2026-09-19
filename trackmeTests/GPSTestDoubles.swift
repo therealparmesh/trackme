@@ -11,10 +11,14 @@ final class SignalTestLocationManager: LocationManagerClient {
     var pausesLocationUpdatesAutomatically = true
     var allowsBackgroundLocationUpdates = false
     var showsBackgroundLocationIndicator = false
+    var authorizationRequests = 0
     var startUpdatingLocationCalls = 0
     var stopUpdatingLocationCalls = 0
 
-    func requestWhenInUseAuthorization() {}
+    func requestWhenInUseAuthorization() {
+        authorizationRequests += 1
+    }
+
     func startUpdatingLocation() {
         startUpdatingLocationCalls += 1
     }
