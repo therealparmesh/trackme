@@ -186,8 +186,10 @@ final class GPSContinuityTests: XCTestCase {
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
         XCTAssertNil(json["lastUsableLocationUpdateAt"])
         store.draft = try JSONDecoder().decode(ActiveWorkoutDraft.self, from: encoded)
+        let manager = SignalTestLocationManager()
+        manager.authorizationStatus = .authorizedWhenInUse
         let tracker = LocationTracker(
-            manager: SignalTestLocationManager(), activeDraftStore: store,
+            manager: manager, activeDraftStore: store,
             motionActivity: SignalTestMotionActivityClient(state: .moving)
         )
         defer { tracker.discard() }
