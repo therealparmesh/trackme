@@ -32,7 +32,7 @@ final class TrackmeCoreTests: XCTestCase {
 
     @MainActor
     func testStartupLocationAccessRequestsPermissionGreedily() {
-        let manager = FakeLocationManager()
+        let manager = SignalTestLocationManager()
         manager.authorizationStatus = .notDetermined
         let tracker = LocationTracker(manager: manager)
 
@@ -47,7 +47,7 @@ final class TrackmeCoreTests: XCTestCase {
 
     @MainActor
     func testStartupLocationAccessWarmsGPSWhenAlreadyAuthorized() {
-        let manager = FakeLocationManager()
+        let manager = SignalTestLocationManager()
         manager.authorizationStatus = .authorizedWhenInUse
         let tracker = LocationTracker(manager: manager)
 
@@ -61,7 +61,7 @@ final class TrackmeCoreTests: XCTestCase {
 
     @MainActor
     func testStartupLocationAccessShowsErrorWhenDenied() {
-        let manager = FakeLocationManager()
+        let manager = SignalTestLocationManager()
         manager.authorizationStatus = .denied
         let tracker = LocationTracker(manager: manager)
 
@@ -75,7 +75,7 @@ final class TrackmeCoreTests: XCTestCase {
 
     @MainActor
     func testMapFocusIgnoresStaleReadyFix() {
-        let manager = FakeLocationManager()
+        let manager = SignalTestLocationManager()
         manager.authorizationStatus = .authorizedWhenInUse
         let tracker = LocationTracker(manager: manager)
         tracker.lastReadyLocation = CLLocation(
@@ -87,35 +87,6 @@ final class TrackmeCoreTests: XCTestCase {
         )
 
         XCTAssertNil(tracker.mapFocusLocation)
-    }
-
-    @MainActor
-    func testSignalGapBreaksRouteAndPreventsDistanceJump() {
-        let sessionStart = Date(timeIntervalSince1970: 1_000)
-        let manager = FakeLocationManager()
-        manager.authorizationStatus = .authorizedWhenInUse
-        let tracker = LocationTracker(
-            manager: manager,
-            activeDraftStore: CoreTestActiveWorkoutDraftStore()
-        )
-        tracker.authorizationStatus = .authorizedWhenInUse
-        tracker.state = .tracking
-        tracker.startDate = sessionStart
-
-        let first = location(latitude: 41, timestamp: sessionStart.addingTimeInterval(1))
-        let second = location(latitude: 41.000_1, timestamp: sessionStart.addingTimeInterval(11))
-        tracker.processLocationUpdates([first, second], receivedAt: second.timestamp)
-        let distanceBeforeGap = tracker.distance
-
-        let signalLossAt = sessionStart.addingTimeInterval(35)
-        tracker.lastRawLocationUpdateAt = signalLossAt.addingTimeInterval(-30)
-        tracker.refreshSignalTimeout(now: signalLossAt)
-        let afterGap = location(latitude: 41.01, timestamp: sessionStart.addingTimeInterval(40))
-        tracker.processLocationUpdates([afterGap], receivedAt: afterGap.timestamp)
-
-        XCTAssertEqual(tracker.distance, distanceBeforeGap, accuracy: 0.001)
-        XCTAssertEqual(tracker.route.routeSegments.count, 2)
-        XCTAssertEqual(tracker.gpsStatus, .ready)
     }
 
     @MainActor
@@ -262,20 +233,6 @@ final class TrackmeCoreTests: XCTestCase {
         )
     }
 
-    private func location(latitude: Double, timestamp: Date) -> CLLocation {
-        CLLocation(
-            coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: -87),
-            altitude: 0,
-            horizontalAccuracy: 5,
-            verticalAccuracy: 5,
-            course: -1,
-            courseAccuracy: -1,
-            speed: 1.2,
-            speedAccuracy: 0.2,
-            timestamp: timestamp
-        )
-    }
-
     private func snapshot(distance: Double = 100) -> WorkoutSnapshot {
         WorkoutSnapshot(
             activity: .walk,
@@ -287,33 +244,6 @@ final class TrackmeCoreTests: XCTestCase {
             route: [],
             pauses: []
         )
-    }
-}
-
-@MainActor
-private final class FakeLocationManager: LocationManagerClient {
-    var authorizationStatus: CLAuthorizationStatus = .notDetermined
-    weak var delegate: CLLocationManagerDelegate?
-    var activityType: CLActivityType = .other
-    var desiredAccuracy: CLLocationAccuracy = kCLLocationAccuracyThreeKilometers
-    var distanceFilter: CLLocationDistance = kCLDistanceFilterNone
-    var pausesLocationUpdatesAutomatically = true
-    var allowsBackgroundLocationUpdates = false
-    var showsBackgroundLocationIndicator = false
-    var authorizationRequests = 0
-    var startUpdatingLocationCalls = 0
-    var stopUpdatingLocationCalls = 0
-
-    func requestWhenInUseAuthorization() {
-        authorizationRequests += 1
-    }
-
-    func startUpdatingLocation() {
-        startUpdatingLocationCalls += 1
-    }
-
-    func stopUpdatingLocation() {
-        stopUpdatingLocationCalls += 1
     }
 }
 
@@ -340,21 +270,5 @@ private final class FakeHealthStoreClient: HealthStoreClient {
 
     func deleteWorkout(id: UUID) async throws {
         deletedWorkoutIDs.append(id)
-    }
-}
-
-private final class CoreTestActiveWorkoutDraftStore: ActiveWorkoutDraftStoring {
-    private var draft: ActiveWorkoutDraft?
-
-    func load() -> ActiveWorkoutDraft? {
-        draft
-    }
-
-    func save(_ draft: ActiveWorkoutDraft) {
-        self.draft = draft
-    }
-
-    func clear() {
-        draft = nil
     }
 }

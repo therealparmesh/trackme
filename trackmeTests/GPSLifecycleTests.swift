@@ -72,6 +72,8 @@ final class GPSLifecycleTests: XCTestCase {
             tracker.processLocationUpdates([location(at: now)], receivedAt: now)
             tracker.start()
             tracker.pause()
+            XCTAssertEqual(motion.stopCalls, 1)
+            XCTAssertEqual(manager.stopUpdatingLocationCalls, 1)
             let paused = try XCTUnwrap(store.draft)
             let elapsed = tracker.elapsed
 
@@ -99,6 +101,10 @@ final class GPSLifecycleTests: XCTestCase {
             XCTAssertNil(store.draft?.pausedAt)
             XCTAssertEqual(store.draft?.pauses.count, 1)
             XCTAssertEqual(store.draft?.pauses.first?.startDate, paused.pausedAt)
+
+            tracker.discard()
+            XCTAssertEqual(motion.stopCalls, 2)
+            XCTAssertEqual(manager.stopUpdatingLocationCalls, 2)
         }
     }
 

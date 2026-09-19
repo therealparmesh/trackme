@@ -1,6 +1,8 @@
 # trackme
 
-trackme is a minimal walk and run tracker for iPhone. It helps you follow a workout live, save the result, and look back at your recent movement without accounts, feeds, or clutter.
+trackme is a minimal walk and run tracker for iPhone. It helps you follow a
+workout live, save the result, and look back at your recent movement without
+accounts, feeds, or clutter.
 
 ## Highlights
 

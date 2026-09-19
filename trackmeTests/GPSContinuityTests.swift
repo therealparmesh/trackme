@@ -6,6 +6,24 @@ import XCTest
 final class GPSContinuityTests: XCTestCase {
     private let start = Date(timeIntervalSince1970: 1_000)
 
+    func testSilentSignalLossBreaksRouteAndPreventsDistanceJump() {
+        for motionState in [MotionState.moving, .unknown] {
+            let tracker = tracker(motion: SignalTestMotionActivityClient(state: motionState))
+            send(tracker, latitude: 41, seconds: 1)
+            send(tracker, latitude: 41.000_1, seconds: 11)
+            let distanceBeforeGap = tracker.distance
+
+            tracker.refreshSignalTimeout(now: start.addingTimeInterval(35))
+            XCTAssertEqual(tracker.gpsStatus, .lost)
+            XCTAssertNil(tracker.lastAcceptedLocation)
+            send(tracker, latitude: 41.01, seconds: 40)
+
+            XCTAssertEqual(tracker.distance, distanceBeforeGap, accuracy: 0.001)
+            XCTAssertEqual(tracker.route.routeSegments.count, 2)
+            XCTAssertEqual(tracker.gpsStatus, .ready)
+        }
+    }
+
     func testProlongedInaccurateFixesDoNotBridgeRecovery() {
         for motionState in [MotionState.moving, .stationary, .unknown] {
             let tracker = tracker(motion: SignalTestMotionActivityClient(state: motionState))
@@ -45,6 +63,7 @@ final class GPSContinuityTests: XCTestCase {
         send(tracker, latitude: 41, seconds: 1)
         tracker.refreshSignalTimeout(now: start.addingTimeInterval(60))
         XCTAssertEqual(tracker.gpsStatus, .ready)
+        XCTAssertNotNil(tracker.lastAcceptedLocation)
 
         // Motion can report walking before the next five-meter GPS update.
         motion.state = .moving
@@ -53,6 +72,7 @@ final class GPSContinuityTests: XCTestCase {
         XCTAssertNotNil(tracker.lastAcceptedLocation)
         send(tracker, latitude: 41.000_1, seconds: 66)
 
+        XCTAssertEqual(tracker.route.count, 2)
         XCTAssertGreaterThan(tracker.distance, 0)
         XCTAssertEqual(tracker.route.routeSegments.count, 1)
     }
