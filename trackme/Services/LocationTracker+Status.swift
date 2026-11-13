@@ -2,7 +2,7 @@ import CoreLocation
 
 extension LocationTracker {
     var isReadyToStart: Bool {
-        state == .idle && isAuthorized && gpsStatus == .ready && hasRecentReadyFix && !isRequestingAuthorization
+        state == .idle && canRecordLocation && gpsStatus == .ready && hasRecentReadyFix && !isRequestingAuthorization
     }
 
     var hasMeaningfulWorkout: Bool {
@@ -20,6 +20,7 @@ extension LocationTracker {
             return .locationOff
         }
         guard isAuthorized else { return .finding }
+        guard hasPreciseLocation else { return .locationOff }
 
         switch state {
         case .idle:
@@ -35,11 +36,20 @@ extension LocationTracker {
         authorizationStatus == .authorizedAlways || authorizationStatus == .authorizedWhenInUse
     }
 
+    var canRecordLocation: Bool { isAuthorized && hasPreciseLocation }
+
+    var locationPermissionMessage: String? {
+        if isAuthorized {
+            return hasPreciseLocation ? nil : Self.preciseLocationMessage
+        }
+        return Self.locationAccessMessage
+    }
+
     var mapFocusLocation: CLLocation? {
         if let lastAcceptedLocation {
             return lastAcceptedLocation
         }
-        guard hasRecentReadyFix else { return nil }
+        guard canRecordLocation, hasRecentReadyFix else { return nil }
         return lastReadyLocation
     }
 

@@ -111,33 +111,73 @@ final class GPSLifecycleTests: XCTestCase {
     func testFinishRestoresReadinessExpiryWithoutAnotherFix() async throws {
         let tracker = trackingTracker(fixAge: 29)
         defer { tracker.readinessTask?.cancel() }
-        XCTAssertNotNil(tracker.stop())
+        XCTAssertNotNil(tracker.finish { _ in })
         try await assertReadinessExpires(tracker)
     }
 
-    func testResetPreservesReadinessDeadlineAfterFinish() async throws {
-        let tracker = trackingTracker(fixAge: 29)
+    func testFinishRestartsForegroundUpdatesEvenWithoutAFreshFix() {
+        let tracker = trackingTracker(fixAge: 31)
+        let manager = tracker.manager as? SignalTestLocationManager
         defer { tracker.readinessTask?.cancel() }
-        XCTAssertNotNil(tracker.stop())
-        tracker.reset()
-        try await assertReadinessExpires(tracker)
+        XCTAssertNotNil(tracker.finish { _ in })
+        XCTAssertEqual(tracker.state, .idle)
+        XCTAssertEqual(tracker.displayStatus, .finding)
+        XCTAssertEqual(manager?.startUpdatingLocationCalls, 1)
+        XCTAssertEqual(manager?.allowsBackgroundLocationUpdates, false)
+        XCTAssertEqual(manager?.distanceFilter, kCLDistanceFilterNone)
+
+        let now = Date.now
+        tracker.processLocationUpdates([location(at: now)], receivedAt: now)
+        XCTAssertTrue(tracker.isReadyToStart)
+    }
+
+    func testFailedLocalSaveKeepsPausedWorkoutAndDraftForRetry() throws {
+        let now = Date.now
+        let store = InMemoryActiveWorkoutDraftStore()
+        let tracker = LocationTracker(
+            manager: SignalTestLocationManager(), activeDraftStore: store,
+            motionActivity: SignalTestMotionActivityClient()
+        )
+        tracker.state = .tracking
+        tracker.startDate = now.addingTimeInterval(-60)
+        tracker.distance = 100
+        tracker.pause(now: now.addingTimeInterval(-10))
+
+        XCTAssertThrowsError(try tracker.finish { _ in throw CocoaError(.fileWriteOutOfSpace) })
+        XCTAssertEqual(tracker.state, .paused)
+        XCTAssertEqual(tracker.distance, 100)
+        XCTAssertEqual(store.draft?.pausedAt, now.addingTimeInterval(-10))
+
+        let snapshot = try XCTUnwrap(tracker.finish { _ in })
+        XCTAssertEqual(snapshot.duration, 50, accuracy: 0.001)
+        XCTAssertEqual(snapshot.pauses.count, 1)
+        XCTAssertEqual(tracker.state, .idle)
+        XCTAssertNil(store.draft)
+    }
+
+    func testApproximateLocationShowsSettingsInsteadOfWaitingForGPS() {
+        let manager = SignalTestLocationManager()
+        manager.authorizationStatus = .authorizedWhenInUse
+        manager.accuracyAuthorization = .reducedAccuracy
+        let tracker = LocationTracker(manager: manager, activeDraftStore: InMemoryActiveWorkoutDraftStore())
+
+        tracker.prepareForWorkout()
+        XCTAssertEqual(tracker.displayStatus, .locationOff)
+        XCTAssertFalse(tracker.isReadyToStart)
+        XCTAssertEqual(tracker.errorMessage, LocationTracker.preciseLocationMessage)
+        XCTAssertEqual(manager.startUpdatingLocationCalls, 0)
     }
 
     func testDiscardRestoresReadinessExpiryWithoutAnotherFix() async throws {
         let tracker = trackingTracker(fixAge: 29)
         defer { tracker.readinessTask?.cancel() }
         tracker.discard()
-        tracker.prepareForWorkout()
         try await assertReadinessExpires(tracker)
     }
 
     func testReturningToIdleDoesNotReviveExpiredReadyFix() {
         let transitions: [(LocationTracker) -> Void] = [
-            { _ = $0.stop() },
-            {
-                _ = $0.stop()
-                $0.reset()
-            },
+            { _ = $0.finish { _ in } },
             { $0.discard() }
         ]
         for transition in transitions {

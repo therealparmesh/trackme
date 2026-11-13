@@ -24,7 +24,6 @@
 		564A6D742CF56554B7F70B80 /* TrackmeCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5F5A560B820E2E9AF9BA587 /* TrackmeCoreTests.swift */; };
 		6646287183F2DF02B8758239 /* WorkoutMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DEC4F5C151761F36D7B7FD /* WorkoutMetricsTests.swift */; };
 		6FBE3DBFF7588FBDF426FAB6 /* TrackAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24C35352E5890EA613AC35B5 /* TrackAlert.swift */; };
-		70E93C9D7B7822D3EB1D1BA7 /* WorkoutSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41909E0ACDFAF5A10B9D3B88 /* WorkoutSnapshotTests.swift */; };
 		83BDC927C4D98D6F1AF26E98 /* GPSPointFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D947C7443C40E0C7D0D82B48 /* GPSPointFilterTests.swift */; };
 		84FCF248DB63552E63B5BAF2 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E29D36091886F154B3E8189 /* HealthKitService.swift */; };
 		8A662BDF855940504DB678CA /* WorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12E0F930A6CBED0189F3BC7D /* WorkoutDetailView.swift */; };
@@ -68,7 +67,6 @@
 		35AB80661B7E5C813CD3E1A8 /* TrackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackView.swift; sourceTree = "<group>"; };
 		3782E8182A8A933A795B057B /* GPSReadinessTimingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPSReadinessTimingTests.swift; sourceTree = "<group>"; };
 		3F3454C15AD8D0F4143EA98C /* TokyoTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokyoTheme.swift; sourceTree = "<group>"; };
-		41909E0ACDFAF5A10B9D3B88 /* WorkoutSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSnapshotTests.swift; sourceTree = "<group>"; };
 		44ACD41C9D162DBB0D3F23BB /* LocationTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationTracker.swift; sourceTree = "<group>"; };
 		4E29D36091886F154B3E8189 /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
 		50709CAC5DE23FE87EEBE58B /* AppTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTab.swift; sourceTree = "<group>"; };
@@ -202,7 +200,6 @@
 				23FB4BDEAAACE5A17EDE036B /* TrackMapCameraTests.swift */,
 				B5F5A560B820E2E9AF9BA587 /* TrackmeCoreTests.swift */,
 				83DEC4F5C151761F36D7B7FD /* WorkoutMetricsTests.swift */,
-				41909E0ACDFAF5A10B9D3B88 /* WorkoutSnapshotTests.swift */,
 			);
 			path = trackmeTests;
 			sourceTree = "<group>";
@@ -344,7 +341,6 @@
 				0AFBB05D9EA529A44671D651 /* TrackMapCameraTests.swift in Sources */,
 				564A6D742CF56554B7F70B80 /* TrackmeCoreTests.swift in Sources */,
 				6646287183F2DF02B8758239 /* WorkoutMetricsTests.swift in Sources */,
-				70E93C9D7B7822D3EB1D1BA7 /* WorkoutSnapshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

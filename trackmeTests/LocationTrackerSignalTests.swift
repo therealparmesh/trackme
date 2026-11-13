@@ -100,6 +100,7 @@ final class LocationTrackerSignalTests: XCTestCase {
         tracker.startDate = sessionStart
         tracker.gpsStatus = .ready
         tracker.lastRawLocationUpdateAt = lossAt.addingTimeInterval(-30)
+        tracker.lastUsableLocationUpdateAt = tracker.lastRawLocationUpdateAt
         let anchor = location(latitude: 41, timestamp: sessionStart.addingTimeInterval(10))
         tracker.lastAcceptedLocation = anchor
         tracker.route = [RoutePoint(location: anchor, startsNewSegment: true)]
@@ -114,7 +115,6 @@ final class LocationTrackerSignalTests: XCTestCase {
         XCTAssertEqual(tracker.gpsStatus, .lost)
         XCTAssertEqual(tracker.lastRawLocationUpdateAt, lossAt.addingTimeInterval(-30))
         XCTAssertEqual(tracker.route.count, 1)
-        XCTAssertNil(tracker.lastAcceptedLocation)
     }
 
     func testFreshFixClearsTransientLocationError() {
@@ -192,7 +192,7 @@ extension LocationTrackerSignalTests {
         tracker.startDate = sessionStart
         tracker.distance = 12
 
-        XCTAssertFalse(tracker.hasMeaningfulWorkout)
+        XCTAssertNil(tracker.finish { _ in XCTFail("A short workout reached the save operation") })
         XCTAssertEqual(tracker.state, .tracking)
         XCTAssertNotNil(tracker.startDate)
     }
@@ -295,7 +295,7 @@ extension LocationTrackerSignalTests {
         XCTAssertTrue(manager.allowsBackgroundLocationUpdates)
         XCTAssertEqual(motionActivity.startCalls, 1)
         XCTAssertEqual(tracker.gpsStatus, .finding)
-        XCTAssertEqual(tracker.lastRawLocationUpdateAt, sessionStart.addingTimeInterval(120))
+        XCTAssertEqual(tracker.lastRawLocationUpdateAt, lastPoint.timestamp)
 
         let resumedPoint = location(latitude: 41.01, timestamp: sessionStart.addingTimeInterval(125))
         tracker.processLocationUpdates([resumedPoint], receivedAt: resumedPoint.timestamp)

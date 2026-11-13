@@ -113,33 +113,9 @@ final class WorkoutMetricsTests: XCTestCase {
 }
 
 extension WorkoutMetricsTests {
-    func testTinyGPSOnlyWorkoutFinalizesAtZero() {
-        let route = [
-            routePoint(latitude: 41, startsNewSegment: true),
-            routePoint(latitude: 41.000_05, startsNewSegment: false)
-        ]
-
-        let result = WorkoutPathFilter.finalized(distance: 12, route: route)
-
-        XCTAssertEqual(result.distance, 0)
-        XCTAssertTrue(result.route.isEmpty)
-    }
-
     func testMeaningfulWorkoutThreshold() {
         XCTAssertFalse(WorkoutPathFilter.isMeaningful(distance: 19.99))
         XCTAssertTrue(WorkoutPathFilter.isMeaningful(distance: 20))
-    }
-
-    func testMeaningfulWorkoutKeepsDistanceAndRoute() {
-        let route = [
-            routePoint(latitude: 41, startsNewSegment: true),
-            routePoint(latitude: 41.000_2, startsNewSegment: false)
-        ]
-
-        let result = WorkoutPathFilter.finalized(distance: 25, route: route)
-
-        XCTAssertEqual(result.distance, 25)
-        XCTAssertEqual(result.route.count, 2)
     }
 
     func testElevationGainCountsClimbingButNotDescent() {

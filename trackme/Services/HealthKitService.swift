@@ -66,8 +66,13 @@ final class LiveHealthStoreClient: HealthStoreClient {
         }
         if snapshot.route.count > 1 {
             let routeBuilder = HKWorkoutRouteBuilder(healthStore: store, device: .local())
-            try await routeBuilder.insertRouteData(snapshot.route.map(\.location))
-            try await routeBuilder.finishRoute(with: workout, metadata: nil)
+            do {
+                try await routeBuilder.insertRouteData(snapshot.route.map(\.location))
+                try await routeBuilder.finishRoute(with: workout, metadata: nil)
+            } catch {
+                try? await delete([distance, workout])
+                throw error
+            }
         }
         return workout.uuid
     }
@@ -83,9 +88,7 @@ final class LiveHealthStoreClient: HealthStoreClient {
             of: HKSeriesType.workoutRoute(),
             predicate: workoutPredicate
         )
-        try await delete(distanceSamples)
-        try await delete(routes)
-        try await delete([workout])
+        try await delete(distanceSamples + routes + [workout])
     }
 
     private func workout(id: UUID) async throws -> HKWorkout? {
@@ -149,6 +152,7 @@ final class HealthKitService {
     var isConnected = false
     var isWorking = false
     var message: String?
+    private(set) var syncingWorkoutIDs: Set<UUID> = []
 
     var isAvailable: Bool {
         client.isHealthDataAvailable
@@ -212,6 +216,20 @@ final class HealthKitService {
         } catch {
             message = "Your workout was saved in trackme, but it could not be added to Apple Health."
             return nil
+        }
+    }
+
+    func sync(_ snapshot: WorkoutSnapshot, completion: @escaping (UUID) throws -> Void) {
+        guard syncingWorkoutIDs.insert(snapshot.id).inserted else { return }
+        Task {
+            defer { syncingWorkoutIDs.remove(snapshot.id) }
+            guard let id = await save(snapshot) else { return }
+            do {
+                try completion(id)
+            } catch {
+                await deleteWorkout(id: id)
+                message = "The Apple Health link could not be saved in trackme."
+            }
         }
     }
 

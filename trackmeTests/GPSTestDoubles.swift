@@ -4,6 +4,7 @@ import CoreLocation
 @MainActor
 final class SignalTestLocationManager: LocationManagerClient {
     var authorizationStatus: CLAuthorizationStatus = .notDetermined
+    var accuracyAuthorization: CLAccuracyAuthorization = .fullAccuracy
     weak var delegate: CLLocationManagerDelegate?
     var activityType: CLActivityType = .other
     var desiredAccuracy: CLLocationAccuracy = kCLLocationAccuracyThreeKilometers

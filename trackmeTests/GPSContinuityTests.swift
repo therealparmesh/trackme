@@ -15,7 +15,6 @@ final class GPSContinuityTests: XCTestCase {
 
             tracker.refreshSignalTimeout(now: start.addingTimeInterval(35))
             XCTAssertEqual(tracker.gpsStatus, .lost)
-            XCTAssertNil(tracker.lastAcceptedLocation)
             send(tracker, latitude: 41.01, seconds: 40)
 
             XCTAssertEqual(tracker.distance, distanceBeforeGap, accuracy: 0.001)
@@ -89,7 +88,6 @@ final class GPSContinuityTests: XCTestCase {
             tracker.refreshSignalTimeout(now: start.addingTimeInterval(81))
 
             XCTAssertEqual(tracker.gpsStatus, .lost)
-            XCTAssertNil(tracker.lastAcceptedLocation)
         }
     }
 
@@ -99,6 +97,8 @@ final class GPSContinuityTests: XCTestCase {
         let batch = (1...6).map { index in
             location(latitude: 41 + Double(index) * 0.000_1, seconds: Double(index * 10 + 1))
         }
+        tracker.refreshSignalTimeout(now: start.addingTimeInterval(61))
+        XCTAssertEqual(tracker.gpsStatus, .lost)
         tracker.processLocationUpdates(batch, receivedAt: start.addingTimeInterval(61))
 
         XCTAssertEqual(tracker.route.count, 7)
@@ -162,7 +162,6 @@ final class GPSContinuityTests: XCTestCase {
         XCTAssertEqual(tracker.route.count, 3)
         XCTAssertGreaterThan(tracker.distance, 20)
         XCTAssertEqual(tracker.gpsStatus, .lost)
-        XCTAssertNil(tracker.lastAcceptedLocation)
     }
 
     func testWeakFixesCannotKeepInitialAcquisitionAliveForever() {

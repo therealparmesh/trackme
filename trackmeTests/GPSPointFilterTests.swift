@@ -167,6 +167,25 @@ final class GPSPointFilterTests: XCTestCase {
         )
     }
 
+    func testUnknownMotionAndSpeedUseDisplacementOutsideAccuracyBounds() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        let previous = location(latitude: 41, horizontalAccuracy: 5, timestamp: start)
+        let next = start.addingTimeInterval(10)
+        let drift = location(
+            latitude: 41.000_05, horizontalAccuracy: 5, speed: -1, speedAccuracy: -1, timestamp: next
+        )
+        let movement = location(
+            latitude: 41.000_15, horizontalAccuracy: 5, speed: -1, speedAccuracy: -1, timestamp: next
+        )
+
+        XCTAssertFalse(GPSPointFilter.shouldAccept(
+            drift, after: previous, sessionStart: start, motionState: .unknown, now: next
+        ))
+        XCTAssertTrue(GPSPointFilter.shouldAccept(
+            movement, after: previous, sessionStart: start, motionState: .unknown, now: next
+        ))
+    }
+
     private func location(
         latitude: Double,
         horizontalAccuracy: CLLocationAccuracy,

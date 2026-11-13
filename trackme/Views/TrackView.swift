@@ -17,7 +17,7 @@ struct TrackView: View {
     @State private var trackAlert: TrackAlert?
 
     private var canOpenLocationSettings: Bool {
-        tracker.authorizationStatus == .denied || tracker.authorizationStatus == .restricted
+        tracker.displayStatus == .locationOff
     }
 
     var body: some View {
@@ -38,7 +38,6 @@ struct TrackView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 recenterMap()
-                tracker.prepareForWorkout()
             }
         }
         .onChange(of: tracker.gpsStatus) { _, status in
@@ -116,8 +115,7 @@ struct TrackView: View {
     }
 
     private var activityPicker: some View {
-        @Bindable var tracker = tracker
-        return HStack(spacing: 6) {
+        HStack(spacing: 6) {
             ForEach(ActivityKind.allCases) { activity in
                 Button {
                     tracker.activity = activity
@@ -227,37 +225,36 @@ private extension TrackView {
             return
         }
 
-        guard let snapshot = tracker.stop() else { return }
-
-        Task {
-            await persist(snapshot)
-        }
-    }
-
-    private func persist(_ snapshot: WorkoutSnapshot) async {
-        let healthKitWorkoutID = autoSyncHealth ? await health.save(snapshot) : nil
+        var record: WorkoutRecord?
         do {
-            modelContext.insert(try WorkoutRecord(
-                snapshot: snapshot,
-                healthKitWorkoutID: healthKitWorkoutID
-            ))
-            try modelContext.save()
-        } catch {
-            if let healthKitWorkoutID {
-                await health.deleteWorkout(id: healthKitWorkoutID)
+            guard let snapshot = try tracker.finish(save: { snapshot in
+                let workout = try WorkoutRecord(snapshot: snapshot)
+                modelContext.insert(workout)
+                try modelContext.save()
+                record = workout
+            }), let record else { return }
+
+            if autoSyncHealth {
+                health.sync(snapshot) { id in
+                    record.healthKitWorkoutID = id
+                    do {
+                        try modelContext.save()
+                    } catch {
+                        record.healthKitWorkoutID = nil
+                        throw error
+                    }
+                }
             }
+            onWorkoutSaved()
+        } catch {
             modelContext.rollback()
-            trackAlert = .saveFailure(snapshot)
-            return
+            trackAlert = .saveFailure
         }
-        tracker.reset()
-        onWorkoutSaved()
     }
 
     private func discardWorkout() {
         impact(.light)
         tracker.discard()
-        tracker.prepareForWorkout()
         recenterMap()
     }
 
@@ -275,13 +272,11 @@ private extension TrackView {
                 primaryButton: .default(Text("Keep recording")),
                 secondaryButton: .destructive(Text("Discard workout"), action: discardWorkout)
             )
-        case .saveFailure(let snapshot):
+        case .saveFailure:
             Alert(
                 title: Text("Could not save workout"),
                 message: Text("Your workout was not saved. Try again or discard it."),
-                primaryButton: .default(Text("Try again")) {
-                    Task { await persist(snapshot) }
-                },
+                primaryButton: .default(Text("Try again"), action: saveWorkout),
                 secondaryButton: .destructive(Text("Discard workout"), action: discardWorkout)
             )
         }

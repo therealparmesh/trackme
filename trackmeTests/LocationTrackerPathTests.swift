@@ -4,6 +4,27 @@ import XCTest
 
 @MainActor
 final class LocationTrackerPathTests: XCTestCase {
+    func testRecentReadyFixRecordsTheFirstLegFromTheStart() throws {
+        let manager = SignalTestLocationManager()
+        manager.authorizationStatus = .authorizedWhenInUse
+        let tracker = LocationTracker(
+            manager: manager, activeDraftStore: InMemoryActiveWorkoutDraftStore(),
+            motionActivity: SignalTestMotionActivityClient(state: .moving)
+        )
+        defer { tracker.discard() }
+        let now = Date.now
+        tracker.processLocationUpdates([location(latitude: 41, timestamp: now)], receivedAt: now)
+        tracker.start()
+
+        let start = try XCTUnwrap(tracker.startDate)
+        let next = location(latitude: 41.000_1, timestamp: start.addingTimeInterval(8))
+        tracker.processLocationUpdates([next], receivedAt: next.timestamp)
+
+        XCTAssertEqual(tracker.route.first?.timestamp, start)
+        XCTAssertEqual(tracker.route.count, 2)
+        XCTAssertEqual(tracker.distance, 11.1, accuracy: 0.2)
+    }
+
     func testSystemLocationResumeStartsANewDistanceSegment() {
         let sessionStart = Date.now.addingTimeInterval(-60)
         let manager = SignalTestLocationManager()

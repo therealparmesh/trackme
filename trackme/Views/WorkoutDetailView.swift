@@ -48,6 +48,7 @@ struct WorkoutDetailView: View {
                     Button("Delete workout", systemImage: "trash", role: .destructive) {
                         isConfirmingDelete = true
                     }
+                    .disabled(isDeleting || health.syncingWorkoutIDs.contains(workout.id))
                 } label: {
                     Image(systemName: "ellipsis")
                         .accessibilityLabel("Workout options")
@@ -76,7 +77,7 @@ struct WorkoutDetailView: View {
     }
 
     private func deleteWorkout() {
-        guard !isDeleting else { return }
+        guard !isDeleting, !health.syncingWorkoutIDs.contains(workout.id) else { return }
         isDeleting = true
         Task {
             await deleteWorkoutAndSyncHealth()

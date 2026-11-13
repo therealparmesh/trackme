@@ -36,11 +36,11 @@ struct RoutePoint: Codable {
     let speedAccuracy: Double
     let startsNewSegment: Bool
 
-    init(location: CLLocation, startsNewSegment: Bool) {
+    init(location: CLLocation, startsNewSegment: Bool, timestamp: Date? = nil) {
         latitude = location.coordinate.latitude
         longitude = location.coordinate.longitude
         altitude = location.altitude
-        timestamp = location.timestamp
+        self.timestamp = timestamp ?? location.timestamp
         horizontalAccuracy = location.horizontalAccuracy
         verticalAccuracy = location.verticalAccuracy
         course = location.course
@@ -119,11 +119,6 @@ struct WorkoutSnapshot: Identifiable {
     let route: [RoutePoint]
     let pauses: [WorkoutPause]
 
-    var averagePace: TimeInterval {
-        guard distance > 0 else { return 0 }
-        return duration / (distance / 1_609.344)
-    }
-
     var hasMeaningfulDistance: Bool {
         WorkoutPathFilter.isMeaningful(distance: distance)
     }
@@ -141,7 +136,7 @@ final class WorkoutRecord {
     @Attribute(.externalStorage) var routeData: Data
 
     init(snapshot: WorkoutSnapshot, healthKitWorkoutID: UUID? = nil) throws {
-        id = UUID()
+        id = snapshot.id
         activityRawValue = snapshot.activity.rawValue
         startDate = snapshot.startDate
         duration = snapshot.duration

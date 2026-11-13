@@ -2,27 +2,32 @@ import CoreLocation
 
 extension LocationTracker {
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        authorizationStatus = manager.authorizationStatus
+        hasPreciseLocation = manager.accuracyAuthorization == .fullAccuracy
+        updateAuthorization(manager.authorizationStatus)
+    }
+
+    private func updateAuthorization(_ status: CLAuthorizationStatus) {
+        authorizationStatus = status
         isRequestingAuthorization = false
 
-        if isAuthorized {
+        if canRecordLocation {
             errorMessage = nil
             if state == .tracking {
                 beginLocationUpdatesIfAuthorized(background: true)
             } else if state == .idle {
                 prepareForWorkout()
             }
-        } else if state == .tracking {
-            pause()
-            errorMessage = "Location access was turned off, so your workout is paused. "
-                + "Allow access in iPhone Settings to continue."
-        } else if authorizationStatus == .denied || authorizationStatus == .restricted {
+        } else {
+            if state == .tracking { pause() }
             gpsStatus = .lost
-            errorMessage = Self.locationAccessMessage
+            lastReadyLocation = nil
+            cancelReadinessExpiry()
+            errorMessage = status == .notDetermined && state == .idle ? nil : locationPermissionMessage
         }
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard canRecordLocation else { return }
         processLocationUpdates(locations, receivedAt: .now)
     }
 
@@ -35,17 +40,15 @@ extension LocationTracker {
         }
 
         guard let startDate else { return }
-        if lastUsableLocationUpdateAt == nil {
-            lastUsableLocationUpdateAt = lastRawLocationUpdateAt ?? startDate
-        }
         for location in locations {
             guard GPSPointFilter.isValidSample(location, since: startDate, now: receivedAt),
                   location.timestamp > (lastRawLocationUpdateAt ?? .distantPast),
                   location.timestamp >= (routeAnchorNotBefore ?? startDate) else { continue }
 
-            // Check measurement times before advancing the signal clock so delayed
-            // batches preserve continuous routes without bridging missing fixes.
-            updateSignalTimeout(at: location.timestamp)
+            // Decide route continuity from measurement time, even for delayed batches.
+            if signalHasTimedOut(at: location.timestamp) {
+                breakRouteForSignalGap()
+            }
             lastRawLocationUpdateAt = location.timestamp
             if GPSPointFilter.hasTrackingAccuracy(location) {
                 lastUsableLocationUpdateAt = location.timestamp
@@ -59,48 +62,44 @@ extension LocationTracker {
             ) {
                 append(location)
             }
-            if GPSPointFilter.isCurrentSignalSample(location, now: receivedAt) {
-                errorMessage = nil
-                if GPSPointFilter.hasReadyAccuracy(location) {
-                    lastReadyLocation = location
-                    gpsStatus = .ready
-                } else {
-                    markSignalWeak()
-                }
-            }
+            updateLiveSignal(from: location, receivedAt: receivedAt)
         }
-        updateSignalTimeout(at: receivedAt)
+        refreshSignalTimeout(now: receivedAt)
         saveActiveDraft()
     }
 
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        guard let locationError = error as? CLError else {
-            markSignalWeak()
-            errorMessage = "Your location could not be updated. Try again."
-            saveActiveDraft()
-            return
+    private func updateLiveSignal(from location: CLLocation, receivedAt: Date) {
+        guard GPSPointFilter.isCurrentSignalSample(location, now: receivedAt) else { return }
+        if GPSPointFilter.hasReadyAccuracy(location) {
+            lastReadyLocation = location
+            gpsStatus = .ready
+            errorMessage = nil
+        } else if gpsStatus != .lost || lastAcceptedLocation != nil {
+            gpsStatus = .weak
         }
-        switch locationError.code {
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        guard state != .paused else { return }
+        switch (error as? CLError)?.code {
         case .locationUnknown:
             markSignalWeak()
         case .denied:
-            markSignalLost()
-            errorMessage = Self.locationAccessMessage
+            let status = manager.authorizationStatus
+            updateAuthorization(status == .restricted ? .restricted : .denied)
         case .network:
-            markSignalLost()
+            gpsStatus = .lost
             errorMessage = "Your location could not be updated. Check your connection and try again."
         default:
             markSignalWeak()
             errorMessage = "Your location could not be updated. Try again."
         }
-        saveActiveDraft()
     }
 
     func locationManagerDidResumeLocationUpdates(_ manager: CLLocationManager) {
         if state == .tracking {
             let now = Date.now
-            breakRouteForSignalGap()
-            lastRawLocationUpdateAt = now
+            breakRouteForSignalGap(notBefore: now)
             lastUsableLocationUpdateAt = now
             lastStationaryAt = nil
             gpsStatus = .finding
@@ -109,59 +108,38 @@ extension LocationTracker {
     }
 
     func beginLocationUpdatesIfAuthorized(background: Bool) {
-        guard isAuthorized else {
-            if authorizationStatus == .denied || authorizationStatus == .restricted {
-                errorMessage = Self.locationAccessMessage
-            }
-            return
-        }
+        guard canRecordLocation else { return }
         manager.allowsBackgroundLocationUpdates = background
         manager.showsBackgroundLocationIndicator = background
+        manager.distanceFilter = background ? 5 : kCLDistanceFilterNone
         manager.startUpdatingLocation()
     }
 
     func refreshSignalTimeout(now: Date = .now) {
         guard state == .tracking else { return }
-        updateSignalTimeout(at: now)
-        if gpsStatus == .lost {
-            saveActiveDraft()
+        if signalHasTimedOut(at: now) {
+            gpsStatus = .lost
         }
     }
 
-    func startSignalMonitor() {
-        signalTask?.cancel()
-        signalTask = Task { [weak self] in
-            while !Task.isCancelled {
-                do {
-                    try await Task.sleep(for: .seconds(5))
-                } catch {
-                    return
-                }
-                guard let self else { return }
-                self.refreshSignalTimeout()
-            }
-        }
-    }
-
-    private func updateSignalTimeout(at date: Date) {
-        let lastUsable = lastUsableLocationUpdateAt ?? lastRawLocationUpdateAt ?? startDate
+    private func signalHasTimedOut(at date: Date) -> Bool {
+        let lastUsable = lastUsableLocationUpdateAt ?? startDate
         // Stationary silence is expected with a distance filter. Explicitly poor
         // fixes still time out, even when motion reports stationary.
-        if motionActivity.state(at: date) == .stationary,
+        if lastAcceptedLocation != nil, motionActivity.state(at: date) == .stationary,
            (lastRawLocationUpdateAt ?? .distantPast) <= (lastUsable ?? .distantPast) {
             lastStationaryAt = max(lastStationaryAt ?? date, date)
-            return
+            return false
         }
-        let timeoutReference = max(lastUsable ?? .distantPast, lastStationaryAt ?? .distantPast)
-        if GPSPointFilter.signalTimedOut(since: timeoutReference, now: date) {
-            markSignalLost(at: date)
-        }
+        let stationaryReference = lastStationaryAt.flatMap { $0 <= date ? $0 : nil }
+        let reference = max(lastUsable ?? .distantPast, stationaryReference ?? .distantPast)
+        return GPSPointFilter.signalTimedOut(since: reference, now: date)
     }
 
     private func updateReadiness(from locations: [CLLocation], now: Date) {
         if let readyLocation = locations.last(where: { GPSPointFilter.isReadyFix($0, now: now) }) {
             lastReadyLocation = readyLocation
-            if isAuthorized {
+            if canRecordLocation {
                 errorMessage = nil
             }
             gpsStatus = .ready
@@ -175,43 +153,38 @@ extension LocationTracker {
         }
     }
 
-    private func append(_ location: CLLocation) {
-        if let previous = lastAcceptedLocation {
+    func append(_ location: CLLocation, timestamp: Date? = nil) {
+        let previous = lastAcceptedLocation
+        if let previous {
             distance += HorizontalDistanceCalculator.distance(from: previous, to: location)
         }
-        lastAcceptedLocation = location
-        route.append(RoutePoint(location: location, startsNewSegment: startsNewSegment))
-        startsNewSegment = false
+        let point = RoutePoint(location: location, startsNewSegment: previous == nil, timestamp: timestamp)
+        lastAcceptedLocation = timestamp == nil ? location : point.location
+        route.append(point)
         routeAnchorNotBefore = nil
     }
 
     private func markSignalWeak() {
-        guard state != .paused else { return }
-        gpsStatus = .weak
-    }
-
-    private func markSignalLost(at date: Date = .now) {
-        guard state != .paused else { return }
-        if state == .tracking {
-            breakRouteForSignalGap(notBefore: date)
-        }
-        gpsStatus = .lost
+        if gpsStatus != .lost { gpsStatus = .weak }
     }
 
     func breakRouteForSignalGap(notBefore date: Date? = nil) {
-        if let date, routeAnchorNotBefore == nil {
-            routeAnchorNotBefore = date
-        }
+        routeAnchorNotBefore = date
         lastAcceptedLocation = nil
-        startsNewSegment = true
     }
 
     func restoreIdleReadiness() {
-        guard state == .idle, isAuthorized else { return }
-        if let lastReadyLocation, GPSPointFilter.isReadyFix(lastReadyLocation) {
+        if canRecordLocation, let lastReadyLocation, GPSPointFilter.isReadyFix(lastReadyLocation) {
             gpsStatus = .ready
             scheduleReadinessExpiry(for: lastReadyLocation)
         } else {
+            gpsStatus = .finding
+            cancelReadinessExpiry()
+        }
+    }
+
+    func expireIdleReadinessIfNeeded() {
+        if gpsStatus == .ready, !hasRecentReadyFix {
             gpsStatus = .finding
             cancelReadinessExpiry()
         }

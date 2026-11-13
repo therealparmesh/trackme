@@ -44,12 +44,15 @@ enum GPSPointFilter {
         guard seconds > 0 else { return false }
 
         let distance = HorizontalDistanceCalculator.distance(from: previous, to: location)
-        let accuracyFloor = min(25, max(previous.horizontalAccuracy, location.horizontalAccuracy) * 0.5)
-        let hasReliableSpeed = location.speedAccuracy >= 0
-            && location.speed - location.speedAccuracy >= minimumMovementSpeed
-        return (motionState == .moving || hasReliableSpeed)
-            && distance >= max(4, accuracyFloor)
-            && distance / seconds < maximumSpeed
+        let accuracyFloor = max(previous.horizontalAccuracy, location.horizontalAccuracy) * 0.5
+        guard distance >= max(4, accuracyFloor), distance / seconds < maximumSpeed else { return false }
+
+        if motionState == .moving { return true }
+        if location.speed >= 0, location.speedAccuracy >= 0 {
+            return location.speed - location.speedAccuracy >= minimumMovementSpeed
+        }
+        // Without motion or speed, require the two reported accuracy areas to separate.
+        return distance > previous.horizontalAccuracy + location.horizontalAccuracy
     }
 
     static func isReadyFix(_ location: CLLocation, now: Date = .now) -> Bool {
@@ -96,16 +99,6 @@ enum WorkoutPathFilter {
 
     static func isMeaningful(distance: CLLocationDistance) -> Bool {
         distance >= minimumMeaningfulDistance
-    }
-
-    static func finalized(
-        distance: CLLocationDistance,
-        route: [RoutePoint]
-    ) -> (distance: CLLocationDistance, route: [RoutePoint]) {
-        guard isMeaningful(distance: distance) else {
-            return (0, [])
-        }
-        return (distance, route)
     }
 }
 

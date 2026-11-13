@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 protocol ActiveWorkoutDraftStoring {
     func load() -> ActiveWorkoutDraft?
@@ -7,6 +8,7 @@ protocol ActiveWorkoutDraftStoring {
 }
 
 final class FileActiveWorkoutDraftStore: ActiveWorkoutDraftStoring {
+    private let logger = Logger(subsystem: "com.parmscript.trackme", category: "WorkoutDraft")
     private let fileManager: FileManager
     private let fileURL: URL
 
@@ -32,7 +34,7 @@ final class FileActiveWorkoutDraftStore: ActiveWorkoutDraftStoring {
             )
             try data.write(to: fileURL, options: [.atomic])
         } catch {
-            assertionFailure("Unable to save active workout draft: \(error)")
+            logger.error("Unable to save active workout draft: \(error.localizedDescription, privacy: .private)")
         }
     }
 
@@ -41,7 +43,7 @@ final class FileActiveWorkoutDraftStore: ActiveWorkoutDraftStoring {
         do {
             try fileManager.removeItem(at: fileURL)
         } catch {
-            assertionFailure("Unable to clear active workout draft: \(error)")
+            logger.error("Unable to clear active workout draft: \(error.localizedDescription, privacy: .private)")
         }
     }
 
