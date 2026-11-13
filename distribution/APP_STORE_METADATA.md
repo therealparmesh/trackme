@@ -5,8 +5,8 @@
 - App Store name: trackme: walk & run
 - On-device name: trackme
 - Bundle ID: com.parmscript.trackme
-- Version: 1.0.5
-- Build: 19
+- Version: 1.0.6
+- Build: 21
 - Primary category: Health & Fitness
 - Subtitle: Walk and run tracker
 
@@ -34,10 +34,9 @@ trackme keeps the experience focused:
 
 ## What's New
 
-Improves workout pause, resume, and recovery when location permission changes.
-The READY indicator now stays accurate after finishing or discarding a workout,
-and temporary location errors clear when GPS recovers. Includes GPS lifecycle
-and reliability improvements.
+Improves route and distance recording when GPS updates arrive late or signal
+drops. Finished workouts save to History before syncing to Apple Health.
+Workouts with pauses now show the same distance in trackme and Apple Health.
 
 ## Keywords
 
@@ -66,7 +65,7 @@ Upload three iPhone screenshots in this order:
 
 ## App Privacy Answer
 
-Data Not Collected, based on version 1.0.5 having no developer backend,
+Data Not Collected, based on trackme having no developer backend,
 analytics, advertising, or third-party SDKs. Workout and route history remain on
 the device. Motion activity is processed on device only to distinguish movement
 from stationary GPS drift. If the user enables Apple Health, trackme writes
