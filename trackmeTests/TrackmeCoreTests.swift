@@ -118,6 +118,33 @@ final class TrackmeCoreTests: XCTestCase {
     }
 
     @MainActor
+    func testHealthDistanceSamplesExcludePausesAndGPSGaps() {
+        let start = Date(timeIntervalSinceReferenceDate: 100)
+        let route = [
+            (0.0, 0.0, true), (0.0003, 21.0, false),
+            (0.0010, 40.0, true), (0.0012, 50.0, false),
+            (0.0020, 75.0, true), (0.0024, 85.0, false),
+            (0.0030, 89.0, true)
+        ].map { latitude, offset, startsNewSegment in
+            RoutePoint(
+                location: CLLocation(latitude: latitude, longitude: 0),
+                startsNewSegment: startsNewSegment,
+                timestamp: start.addingTimeInterval(offset)
+            )
+        }
+        let snapshot = WorkoutSnapshot(
+            activity: .walk, startDate: start, endDate: start.addingTimeInterval(90),
+            duration: 75, distance: 99.52, elevationGain: 0, route: route,
+            pauses: [WorkoutPause(startDate: start.addingTimeInterval(20), endDate: start.addingTimeInterval(35))]
+        )
+
+        let samples = LiveHealthStoreClient.distanceSamples(for: snapshot)
+        XCTAssertEqual(samples.map { $0.startDate.timeIntervalSince(start) }, [0, 40, 75])
+        XCTAssertEqual(samples.map { $0.endDate.timeIntervalSince(start) }, [20, 50, 85])
+        XCTAssertEqual(samples.reduce(0) { $0 + $1.quantity.doubleValue(for: .meter()) }, 99.52, accuracy: 0.2)
+    }
+
+    @MainActor
     func testHealthSyncDeleteUsesWorkoutIdentifier() async {
         let client = FakeHealthStoreClient()
         client.authorizationStatus = .sharingAuthorized

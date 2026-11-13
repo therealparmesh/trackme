@@ -5,13 +5,20 @@ enum HorizontalDistanceCalculator {
         from start: CLLocation,
         to end: CLLocation
     ) -> CLLocationDistance {
+        distance(from: start.coordinate, to: end.coordinate)
+    }
+
+    static func distance(
+        from start: CLLocationCoordinate2D,
+        to end: CLLocationCoordinate2D
+    ) -> CLLocationDistance {
         let startLocation = CLLocation(
-            latitude: start.coordinate.latitude,
-            longitude: start.coordinate.longitude
+            latitude: start.latitude,
+            longitude: start.longitude
         )
         let endLocation = CLLocation(
-            latitude: end.coordinate.latitude,
-            longitude: end.coordinate.longitude
+            latitude: end.latitude,
+            longitude: end.longitude
         )
         return startLocation.distance(from: endLocation)
     }

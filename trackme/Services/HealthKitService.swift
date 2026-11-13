@@ -33,15 +33,10 @@ final class LiveHealthStoreClient: HealthStoreClient {
         configuration.locationType = .outdoor
         let builder = HKWorkoutBuilder(healthStore: store, configuration: configuration, device: .local())
 
-        let distance = HKQuantitySample(
-            type: HKQuantityType(.distanceWalkingRunning),
-            quantity: HKQuantity(unit: .meter(), doubleValue: snapshot.distance),
-            start: snapshot.startDate,
-            end: snapshot.endDate
-        )
+        let distanceSamples = Self.distanceSamples(for: snapshot)
 
         try await builder.beginCollection(at: snapshot.startDate)
-        try await builder.addSamples([distance])
+        try await builder.addSamples(distanceSamples)
         let pauseEvents = snapshot.pauses.flatMap { pause in
             [
                 HKWorkoutEvent(
@@ -70,11 +65,31 @@ final class LiveHealthStoreClient: HealthStoreClient {
                 try await routeBuilder.insertRouteData(snapshot.route.map(\.location))
                 try await routeBuilder.finishRoute(with: workout, metadata: nil)
             } catch {
-                try? await delete([distance, workout])
+                try? await delete(distanceSamples + [workout])
                 throw error
             }
         }
         return workout.uuid
+    }
+
+    static func distanceSamples(for snapshot: WorkoutSnapshot) -> [HKQuantitySample] {
+        let type = HKQuantityType(.distanceWalkingRunning)
+        // HealthKit prorates cumulative samples across pauses. Sample each recorded segment separately.
+        return snapshot.route.routeSegments.compactMap { segment in
+            guard segment.count > 1, let first = segment.first, let last = segment.last else { return nil }
+            let distance = zip(segment, segment.dropFirst()).reduce(0.0) { total, pair in
+                total + HorizontalDistanceCalculator.distance(from: pair.0.coordinate, to: pair.1.coordinate)
+            }
+            guard distance > 0 else { return nil }
+            // A fix can be timestamped a few seconds ahead of Pause or Finish.
+            let end = snapshot.pauses.first { $0.endDate > first.timestamp }?.startDate ?? snapshot.endDate
+            return HKQuantitySample(
+                type: type,
+                quantity: HKQuantity(unit: .meter(), doubleValue: distance),
+                start: min(first.timestamp, end),
+                end: min(last.timestamp, end)
+            )
+        }
     }
 
     func deleteWorkout(id: UUID) async throws {
