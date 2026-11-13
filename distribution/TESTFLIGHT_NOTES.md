@@ -6,7 +6,9 @@ Please test the core walk and run flow:
 
 - Wait for READY, then start, pause, resume, and finish a workout.
 - Allow Motion & Fitness access when prompted after starting a workout.
-- Check the live map and saved workout summary.
+- Walk outdoors with the screen locked for a minute or two. Unlock the phone,
+  pause and walk briefly, then resume and keep walking. Finish and check that
+  History includes the locked stretch and excludes the distance covered while paused.
 - Review recent history and trends.
 
 ## GPS Accuracy and Recovery
@@ -34,13 +36,16 @@ Please test the core walk and run flow:
 
 - Pause a workout, turn off Location permission in Settings, and confirm Resume
   keeps it paused; restore permission and confirm Resume works.
+- Turn off Precise Location and confirm the app points to Settings. Restore
+  Precise Location and confirm the app can acquire a fix again.
 - Reopen the app with an unfinished workout and Location permission off; confirm
   the workout is preserved and paused until permission is restored and Resume is
   tapped.
 
 ## Apple Health
 
-- Confirm Apple Health sync adds completed workouts when permission is granted.
+- With auto-sync on, confirm the walk appears in Apple Health after it saves in
+  History. Compare workout distance and check the route in Fitness.
 - Delete a synced workout from its detail screen and confirm its Apple Health
   workout, distance, and route are removed.
 
