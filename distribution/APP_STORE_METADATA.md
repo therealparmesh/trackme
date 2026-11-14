@@ -67,8 +67,7 @@ Upload three iPhone screenshots in this order:
 
 Data Not Collected, based on trackme having no developer backend,
 analytics, advertising, or third-party SDKs. Workout and route history remain on
-the device. Motion activity is processed on device only to distinguish movement
-from stationary GPS drift. If the user enables Apple Health, trackme writes
+the device. If the user enables Apple Health, trackme writes
 completed workouts, distance, and routes to Apple Health.
 
 Re-evaluate this answer before every submission if networking, analytics, crash

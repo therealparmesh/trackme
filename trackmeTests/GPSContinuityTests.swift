@@ -7,38 +7,34 @@ final class GPSContinuityTests: XCTestCase {
     private let start = Date(timeIntervalSince1970: 1_000)
 
     func testSilentSignalLossBreaksRouteAndPreventsDistanceJump() {
-        for motionState in [MotionState.moving, .unknown] {
-            let tracker = tracker(motion: SignalTestMotionActivityClient(state: motionState))
-            send(tracker, latitude: 41, seconds: 1)
-            send(tracker, latitude: 41.000_1, seconds: 11)
-            let distanceBeforeGap = tracker.distance
+        let tracker = tracker()
+        send(tracker, latitude: 41, seconds: 1)
+        send(tracker, latitude: 41.000_1, seconds: 11)
+        let distanceBeforeGap = tracker.distance
 
-            tracker.refreshSignalTimeout(now: start.addingTimeInterval(35))
-            XCTAssertEqual(tracker.gpsStatus, .lost)
-            send(tracker, latitude: 41.01, seconds: 40)
+        tracker.refreshSignalTimeout(now: start.addingTimeInterval(35))
+        XCTAssertEqual(tracker.gpsStatus, .lost)
+        send(tracker, latitude: 41.01, seconds: 40)
 
-            XCTAssertEqual(tracker.distance, distanceBeforeGap, accuracy: 0.001)
-            XCTAssertEqual(tracker.route.routeSegments.count, 2)
-            XCTAssertEqual(tracker.gpsStatus, .ready)
-        }
+        XCTAssertEqual(tracker.distance, distanceBeforeGap, accuracy: 0.001)
+        XCTAssertEqual(tracker.route.routeSegments.count, 2)
+        XCTAssertEqual(tracker.gpsStatus, .ready)
     }
 
     func testProlongedInaccurateFixesDoNotBridgeRecovery() {
-        for motionState in [MotionState.moving, .stationary, .unknown] {
-            let tracker = tracker(motion: SignalTestMotionActivityClient(state: motionState))
-            send(tracker, latitude: 41, seconds: 1)
-            let distanceBeforeGap = tracker.distance
-            for seconds in stride(from: 6, through: 136, by: 5) {
-                send(tracker, latitude: 41.001, seconds: Double(seconds), accuracy: 100)
-                tracker.refreshSignalTimeout(now: start.addingTimeInterval(Double(seconds)))
-            }
-            XCTAssertEqual(tracker.gpsStatus, .lost)
-            send(tracker, latitude: 41.002, seconds: 141)
-
-            XCTAssertEqual(tracker.distance, distanceBeforeGap, accuracy: 0.001)
-            XCTAssertEqual(tracker.route.routeSegments.count, 2)
-            XCTAssertEqual(tracker.gpsStatus, .ready)
+        let tracker = tracker()
+        send(tracker, latitude: 41, seconds: 1)
+        let distanceBeforeGap = tracker.distance
+        for seconds in stride(from: 6, through: 136, by: 5) {
+            send(tracker, latitude: 41.001, seconds: Double(seconds), accuracy: 100)
+            tracker.refreshSignalTimeout(now: start.addingTimeInterval(Double(seconds)))
         }
+        XCTAssertEqual(tracker.gpsStatus, .lost)
+        send(tracker, latitude: 41.002, seconds: 141)
+
+        XCTAssertEqual(tracker.distance, distanceBeforeGap, accuracy: 0.001)
+        XCTAssertEqual(tracker.route.routeSegments.count, 2)
+        XCTAssertEqual(tracker.gpsStatus, .ready)
     }
 
     func testRecoveryBeforeNextMonitorTickStillBreaksGap() {
@@ -54,41 +50,6 @@ final class GPSContinuityTests: XCTestCase {
 
         XCTAssertEqual(tracker.distance, distanceBeforeGap, accuracy: 0.001)
         XCTAssertEqual(tracker.route.routeSegments.count, 2)
-    }
-
-    func testStartingToWalkAfterStationaryDoesNotImmediatelyLoseSignal() {
-        let motion = SignalTestMotionActivityClient(state: .stationary)
-        let tracker = tracker(motion: motion)
-        send(tracker, latitude: 41, seconds: 1)
-        tracker.refreshSignalTimeout(now: start.addingTimeInterval(60))
-        XCTAssertEqual(tracker.gpsStatus, .ready)
-        XCTAssertNotNil(tracker.lastAcceptedLocation)
-
-        // Motion can report walking before the next five-meter GPS update.
-        motion.state = .moving
-        tracker.refreshSignalTimeout(now: start.addingTimeInterval(61))
-        XCTAssertNotEqual(tracker.gpsStatus, .lost)
-        XCTAssertNotNil(tracker.lastAcceptedLocation)
-        send(tracker, latitude: 41.000_1, seconds: 66)
-
-        XCTAssertEqual(tracker.route.count, 2)
-        XCTAssertGreaterThan(tracker.distance, 0)
-        XCTAssertEqual(tracker.route.routeSegments.count, 1)
-    }
-
-    func testStationaryGraceStillExpiresIfMovementGetsNoGPS() {
-        for resumedMotion in [MotionState.moving, .unknown] {
-            let motion = SignalTestMotionActivityClient(state: .stationary)
-            let tracker = tracker(motion: motion)
-            send(tracker, latitude: 41, seconds: 1)
-            tracker.refreshSignalTimeout(now: start.addingTimeInterval(60))
-            motion.state = resumedMotion
-            tracker.refreshSignalTimeout(now: start.addingTimeInterval(61))
-            XCTAssertEqual(tracker.gpsStatus, .ready)
-            tracker.refreshSignalTimeout(now: start.addingTimeInterval(81))
-
-            XCTAssertEqual(tracker.gpsStatus, .lost)
-        }
     }
 
     func testContinuousBackgroundBatchPreservesRoute() {
@@ -123,13 +84,12 @@ final class GPSContinuityTests: XCTestCase {
     }
 
     func testStationaryAccurateUpdatesKeepSignalAliveWithoutAddingDistance() {
-        let motion = SignalTestMotionActivityClient(state: .stationary)
-        let tracker = tracker(motion: motion)
+        let tracker = tracker()
         send(tracker, latitude: 41, seconds: 1)
         for seconds in stride(from: 6, through: 61, by: 5) {
             send(tracker, latitude: 41.000_01, seconds: Double(seconds), accuracy: 45)
         }
-        tracker.refreshSignalTimeout(now: start.addingTimeInterval(100))
+        tracker.refreshSignalTimeout(now: start.addingTimeInterval(65))
 
         XCTAssertNotEqual(tracker.gpsStatus, .lost)
         XCTAssertEqual(tracker.distance, 0)
@@ -208,8 +168,7 @@ final class GPSContinuityTests: XCTestCase {
         let manager = SignalTestLocationManager()
         manager.authorizationStatus = .authorizedWhenInUse
         let tracker = LocationTracker(
-            manager: manager, activeDraftStore: store,
-            motionActivity: SignalTestMotionActivityClient(state: .moving)
+            manager: manager, activeDraftStore: store
         )
         defer { tracker.discard() }
         XCTAssertTrue(tracker.restoreActiveWorkoutIfAvailable(now: start.addingTimeInterval(65)))
@@ -219,12 +178,10 @@ final class GPSContinuityTests: XCTestCase {
         XCTAssertEqual(tracker.route.routeSegments.count, 2)
     }
 
-    private func tracker(
-        motion: SignalTestMotionActivityClient = SignalTestMotionActivityClient(state: .moving)
-    ) -> LocationTracker {
+    private func tracker() -> LocationTracker {
         let tracker = LocationTracker(
             manager: SignalTestLocationManager(),
-            activeDraftStore: InMemoryActiveWorkoutDraftStore(), motionActivity: motion
+            activeDraftStore: InMemoryActiveWorkoutDraftStore()
         )
         tracker.state = .tracking
         tracker.startDate = start

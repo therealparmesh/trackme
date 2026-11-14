@@ -115,8 +115,7 @@ final class GPSReadinessTimingTests: XCTestCase {
         manager.authorizationStatus = .authorizedWhenInUse
         return LocationTracker(
             manager: manager,
-            activeDraftStore: InMemoryActiveWorkoutDraftStore(),
-            motionActivity: SignalTestMotionActivityClient()
+            activeDraftStore: InMemoryActiveWorkoutDraftStore()
         )
     }
 

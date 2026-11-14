@@ -13,7 +13,6 @@ final class GPSLifecycleTests: XCTestCase {
         for (draftState, status) in cases {
             let manager = SignalTestLocationManager()
             manager.authorizationStatus = status
-            let motion = SignalTestMotionActivityClient()
             let store = InMemoryActiveWorkoutDraftStore()
             let pausedAt = draftState == .paused ? now.addingTimeInterval(-20) : nil
             store.draft = ActiveWorkoutDraft(
@@ -22,7 +21,7 @@ final class GPSLifecycleTests: XCTestCase {
                 elapsed: 40, distance: 25, route: [point], lastAcceptedLocation: point,
                 lastReadyLocation: point, lastRawLocationUpdateAt: point.timestamp
             )
-            let tracker = LocationTracker(manager: manager, activeDraftStore: store, motionActivity: motion)
+            let tracker = LocationTracker(manager: manager, activeDraftStore: store)
             defer { tracker.discard() }
             tracker.prepareForWorkout()
             let updatesBeforeRestore = manager.startUpdatingLocationCalls
@@ -36,7 +35,6 @@ final class GPSLifecycleTests: XCTestCase {
             XCTAssertEqual(tracker.errorMessage, tracker.isAuthorized ? nil : LocationTracker.locationAccessMessage)
             XCTAssertEqual(manager.startUpdatingLocationCalls, updatesBeforeRestore)
             XCTAssertEqual(manager.stopUpdatingLocationCalls, 1)
-            XCTAssertEqual(motion.startCalls, 0)
             XCTAssertEqual(store.draft?.state, .paused)
             XCTAssertEqual(store.draft?.pausedAt, pausedAt ?? now)
         }
@@ -62,8 +60,7 @@ final class GPSLifecycleTests: XCTestCase {
             let manager = SignalTestLocationManager()
             manager.authorizationStatus = .authorizedWhenInUse
             let store = InMemoryActiveWorkoutDraftStore()
-            let motion = SignalTestMotionActivityClient()
-            let tracker = LocationTracker(manager: manager, activeDraftStore: store, motionActivity: motion)
+            let tracker = LocationTracker(manager: manager, activeDraftStore: store)
             defer {
                 tracker.discard()
                 tracker.readinessTask?.cancel()
@@ -72,7 +69,6 @@ final class GPSLifecycleTests: XCTestCase {
             tracker.processLocationUpdates([location(at: now)], receivedAt: now)
             tracker.start()
             tracker.pause()
-            XCTAssertEqual(motion.stopCalls, 1)
             XCTAssertEqual(manager.stopUpdatingLocationCalls, 1)
             let paused = try XCTUnwrap(store.draft)
             let elapsed = tracker.elapsed
@@ -85,7 +81,6 @@ final class GPSLifecycleTests: XCTestCase {
             XCTAssertEqual(tracker.elapsed, elapsed)
             XCTAssertEqual(tracker.errorMessage, LocationTracker.locationAccessMessage)
             XCTAssertEqual(manager.startUpdatingLocationCalls, 1)
-            XCTAssertEqual(motion.startCalls, 1)
             XCTAssertEqual(store.draft?.state, .paused)
             XCTAssertEqual(store.draft?.pausedAt, paused.pausedAt)
             XCTAssertEqual(store.draft?.pauses.count, 0)
@@ -97,13 +92,11 @@ final class GPSLifecycleTests: XCTestCase {
             XCTAssertEqual(tracker.state, .tracking)
             XCTAssertNil(tracker.errorMessage)
             XCTAssertEqual(manager.startUpdatingLocationCalls, 2)
-            XCTAssertEqual(motion.startCalls, 2)
             XCTAssertNil(store.draft?.pausedAt)
             XCTAssertEqual(store.draft?.pauses.count, 1)
             XCTAssertEqual(store.draft?.pauses.first?.startDate, paused.pausedAt)
 
             tracker.discard()
-            XCTAssertEqual(motion.stopCalls, 2)
             XCTAssertEqual(manager.stopUpdatingLocationCalls, 2)
         }
     }
@@ -135,8 +128,7 @@ final class GPSLifecycleTests: XCTestCase {
         let now = Date.now
         let store = InMemoryActiveWorkoutDraftStore()
         let tracker = LocationTracker(
-            manager: SignalTestLocationManager(), activeDraftStore: store,
-            motionActivity: SignalTestMotionActivityClient()
+            manager: SignalTestLocationManager(), activeDraftStore: store
         )
         tracker.state = .tracking
         tracker.startDate = now.addingTimeInterval(-60)
@@ -264,8 +256,7 @@ final class GPSLifecycleTests: XCTestCase {
         manager.authorizationStatus = .authorizedWhenInUse
         return LocationTracker(
             manager: manager,
-            activeDraftStore: InMemoryActiveWorkoutDraftStore(),
-            motionActivity: SignalTestMotionActivityClient()
+            activeDraftStore: InMemoryActiveWorkoutDraftStore()
         )
     }
 

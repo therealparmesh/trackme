@@ -46,25 +46,3 @@ final class InMemoryActiveWorkoutDraftStore: ActiveWorkoutDraftStoring {
         didClear = true
     }
 }
-
-final class SignalTestMotionActivityClient: MotionActivityClient {
-    var state: MotionState
-    var startCalls = 0
-    var stopCalls = 0
-
-    init(state: MotionState = .unknown) {
-        self.state = state
-    }
-
-    func start() {
-        startCalls += 1
-    }
-
-    func stop() {
-        stopCalls += 1
-    }
-
-    func state(at date: Date) -> MotionState {
-        state
-    }
-}

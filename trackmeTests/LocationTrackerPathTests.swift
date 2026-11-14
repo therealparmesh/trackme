@@ -8,8 +8,7 @@ final class LocationTrackerPathTests: XCTestCase {
         let manager = SignalTestLocationManager()
         manager.authorizationStatus = .authorizedWhenInUse
         let tracker = LocationTracker(
-            manager: manager, activeDraftStore: InMemoryActiveWorkoutDraftStore(),
-            motionActivity: SignalTestMotionActivityClient(state: .moving)
+            manager: manager, activeDraftStore: InMemoryActiveWorkoutDraftStore()
         )
         defer { tracker.discard() }
         let now = Date.now
@@ -25,38 +24,12 @@ final class LocationTrackerPathTests: XCTestCase {
         XCTAssertEqual(tracker.distance, 11.1, accuracy: 0.2)
     }
 
-    func testSystemLocationResumeStartsANewDistanceSegment() {
-        let sessionStart = Date.now.addingTimeInterval(-60)
-        let manager = SignalTestLocationManager()
-        let motionActivity = SignalTestMotionActivityClient(state: .moving)
-        let tracker = LocationTracker(
-            manager: manager,
-            activeDraftStore: InMemoryActiveWorkoutDraftStore(),
-            motionActivity: motionActivity
-        )
-        tracker.state = .tracking
-        tracker.startDate = sessionStart
-        let previous = location(latitude: 41, timestamp: sessionStart.addingTimeInterval(1))
-        tracker.lastAcceptedLocation = previous
-        tracker.route = [RoutePoint(location: previous, startsNewSegment: true)]
-        tracker.distance = 20
-
-        tracker.locationManagerDidResumeLocationUpdates(CLLocationManager())
-        let resumed = location(latitude: 41.01, timestamp: .now.addingTimeInterval(1))
-        tracker.processLocationUpdates([resumed], receivedAt: resumed.timestamp)
-
-        XCTAssertEqual(tracker.distance, 20, accuracy: 0.001)
-        XCTAssertEqual(tracker.route.count, 2)
-        XCTAssertTrue(tracker.route[1].startsNewSegment)
-    }
-
     func testManualResumeIgnoresLocationsCapturedDuringThePause() throws {
         let manager = SignalTestLocationManager()
         manager.authorizationStatus = .authorizedWhenInUse
         let tracker = LocationTracker(
             manager: manager,
-            activeDraftStore: InMemoryActiveWorkoutDraftStore(),
-            motionActivity: SignalTestMotionActivityClient(state: .moving)
+            activeDraftStore: InMemoryActiveWorkoutDraftStore()
         )
         tracker.state = .paused
         tracker.startDate = .now.addingTimeInterval(-60)

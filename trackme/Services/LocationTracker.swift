@@ -40,12 +40,10 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
 
     @ObservationIgnored let manager: LocationManagerClient
     @ObservationIgnored private let activeDraftStore: ActiveWorkoutDraftStoring
-    @ObservationIgnored let motionActivity: MotionActivityClient
     var lastAcceptedLocation: CLLocation?
     var lastReadyLocation: CLLocation?
     var lastRawLocationUpdateAt: Date?
     var lastUsableLocationUpdateAt: Date?
-    var lastStationaryAt: Date?
     var routeAnchorNotBefore: Date?
     var startDate: Date?
     private var pausedAt: Date?
@@ -67,16 +65,15 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
 
     init(
         manager: LocationManagerClient = CLLocationManager(),
-        activeDraftStore: ActiveWorkoutDraftStoring = FileActiveWorkoutDraftStore(),
-        motionActivity: MotionActivityClient = CoreMotionActivityClient()
+        activeDraftStore: ActiveWorkoutDraftStoring = FileActiveWorkoutDraftStore()
     ) {
         self.manager = manager
         self.activeDraftStore = activeDraftStore
-        self.motionActivity = motionActivity
         super.init()
         manager.delegate = self
         manager.activityType = .fitness
         manager.desiredAccuracy = kCLLocationAccuracyBest
+        manager.distanceFilter = kCLDistanceFilterNone
         manager.pausesLocationUpdatesAutomatically = false
         authorizationStatus = manager.authorizationStatus
         hasPreciseLocation = manager.accuracyAuthorization == .fullAccuracy
@@ -165,7 +162,6 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         self.pausedAt = nil
         breakRouteForSignalGap(notBefore: resumedAt)
         lastUsableLocationUpdateAt = resumedAt
-        lastStationaryAt = nil
         beginTracking()
     }
 
@@ -173,7 +169,6 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         state = .tracking
         gpsStatus = .finding
         beginLocationUpdatesIfAuthorized(background: true)
-        motionActivity.start()
         startClock()
         saveActiveDraft()
     }
@@ -247,7 +242,6 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
         routeAnchorNotBefore = nil
         lastRawLocationUpdateAt = nil
         lastUsableLocationUpdateAt = nil
-        lastStationaryAt = nil
         elapsed = 0
         distance = 0
         route = []
@@ -262,7 +256,6 @@ final class LocationTracker: NSObject, @preconcurrency CLLocationManagerDelegate
 
     private func stopUpdates() {
         stopTimers()
-        motionActivity.stop()
         manager.stopUpdatingLocation()
         manager.allowsBackgroundLocationUpdates = false
         manager.showsBackgroundLocationIndicator = false
@@ -292,7 +285,6 @@ extension LocationTracker {
         lastRawLocationUpdateAt = draft.lastRawLocationUpdateAt
         lastUsableLocationUpdateAt = draft.lastUsableLocationUpdateAt
             ?? lastAcceptedLocation?.timestamp ?? lastReadyLocation?.timestamp
-        lastStationaryAt = nil
         routeAnchorNotBefore = nil
         errorMessage = locationPermissionMessage
 

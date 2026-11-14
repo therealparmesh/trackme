@@ -37,7 +37,6 @@ enum GPSPointFilter {
         _ location: CLLocation,
         after previous: CLLocation?,
         sessionStart: Date,
-        motionState: MotionState,
         now: Date = .now
     ) -> Bool {
         guard isValidSample(location, since: sessionStart, now: now),
@@ -46,7 +45,6 @@ enum GPSPointFilter {
         }
 
         guard let previous else { return hasReadyAccuracy(location) }
-        guard motionState != .stationary else { return false }
         let seconds = location.timestamp.timeIntervalSince(previous.timestamp)
         guard seconds > 0 else { return false }
 
@@ -54,11 +52,11 @@ enum GPSPointFilter {
         let accuracyFloor = max(previous.horizontalAccuracy, location.horizontalAccuracy) * 0.5
         guard distance >= max(4, accuracyFloor), distance / seconds < maximumSpeed else { return false }
 
-        if motionState == .moving { return true }
         if location.speed >= 0, location.speedAccuracy >= 0 {
-            return location.speed - location.speedAccuracy >= minimumMovementSpeed
+            if location.speed - location.speedAccuracy >= minimumMovementSpeed { return true }
+            if location.speed + location.speedAccuracy < minimumMovementSpeed { return false }
         }
-        // Without motion or speed, require the two reported accuracy areas to separate.
+        // Missing or uncertain speed must be supported by clear displacement.
         return distance > previous.horizontalAccuracy + location.horizontalAccuracy
     }
 

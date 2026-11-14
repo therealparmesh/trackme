@@ -57,7 +57,6 @@ extension LocationTracker {
                 location,
                 after: lastAcceptedLocation,
                 sessionStart: startDate,
-                motionState: motionActivity.state(at: location.timestamp),
                 now: receivedAt
             ) {
                 append(location)
@@ -96,22 +95,10 @@ extension LocationTracker {
         }
     }
 
-    func locationManagerDidResumeLocationUpdates(_ manager: CLLocationManager) {
-        if state == .tracking {
-            let now = Date.now
-            breakRouteForSignalGap(notBefore: now)
-            lastUsableLocationUpdateAt = now
-            lastStationaryAt = nil
-            gpsStatus = .finding
-            saveActiveDraft()
-        }
-    }
-
     func beginLocationUpdatesIfAuthorized(background: Bool) {
         guard canRecordLocation else { return }
         manager.allowsBackgroundLocationUpdates = background
         manager.showsBackgroundLocationIndicator = background
-        manager.distanceFilter = background ? 5 : kCLDistanceFilterNone
         manager.startUpdatingLocation()
     }
 
@@ -123,17 +110,10 @@ extension LocationTracker {
     }
 
     private func signalHasTimedOut(at date: Date) -> Bool {
-        let lastUsable = lastUsableLocationUpdateAt ?? startDate
-        // Stationary silence is expected with a distance filter. Explicitly poor
-        // fixes still time out, even when motion reports stationary.
-        if lastAcceptedLocation != nil, motionActivity.state(at: date) == .stationary,
-           (lastRawLocationUpdateAt ?? .distantPast) <= (lastUsable ?? .distantPast) {
-            lastStationaryAt = max(lastStationaryAt ?? date, date)
-            return false
-        }
-        let stationaryReference = lastStationaryAt.flatMap { $0 <= date ? $0 : nil }
-        let reference = max(lastUsable ?? .distantPast, stationaryReference ?? .distantPast)
-        return GPSPointFilter.signalTimedOut(since: reference, now: date)
+        GPSPointFilter.signalTimedOut(
+            since: lastUsableLocationUpdateAt ?? startDate,
+            now: date
+        )
     }
 
     private func updateReadiness(from locations: [CLLocation], now: Date) {

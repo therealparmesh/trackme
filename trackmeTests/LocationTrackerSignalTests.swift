@@ -64,8 +64,7 @@ final class LocationTrackerSignalTests: XCTestCase {
         let sessionStart = Date(timeIntervalSince1970: 1_000)
         let tracker = LocationTracker(
             manager: SignalTestLocationManager(),
-            activeDraftStore: InMemoryActiveWorkoutDraftStore(),
-            motionActivity: SignalTestMotionActivityClient(state: .moving)
+            activeDraftStore: InMemoryActiveWorkoutDraftStore()
         )
         tracker.state = .tracking
         tracker.startDate = sessionStart
@@ -93,8 +92,7 @@ final class LocationTrackerSignalTests: XCTestCase {
         let lossAt = sessionStart.addingTimeInterval(60)
         let tracker = LocationTracker(
             manager: SignalTestLocationManager(),
-            activeDraftStore: InMemoryActiveWorkoutDraftStore(),
-            motionActivity: SignalTestMotionActivityClient(state: .moving)
+            activeDraftStore: InMemoryActiveWorkoutDraftStore()
         )
         tracker.state = .tracking
         tracker.startDate = sessionStart
@@ -121,8 +119,7 @@ final class LocationTrackerSignalTests: XCTestCase {
         let sessionStart = Date(timeIntervalSince1970: 1_000)
         let tracker = LocationTracker(
             manager: SignalTestLocationManager(),
-            activeDraftStore: InMemoryActiveWorkoutDraftStore(),
-            motionActivity: SignalTestMotionActivityClient(state: .moving)
+            activeDraftStore: InMemoryActiveWorkoutDraftStore()
         )
         tracker.state = .tracking
         tracker.startDate = sessionStart
@@ -145,12 +142,10 @@ extension LocationTrackerSignalTests {
     func testStationaryIndoorDriftDoesNotAccumulateDistance() {
         let sessionStart = Date(timeIntervalSince1970: 1_000)
         let manager = SignalTestLocationManager()
-        let motionActivity = SignalTestMotionActivityClient(state: .stationary)
         manager.authorizationStatus = .authorizedWhenInUse
         let tracker = LocationTracker(
             manager: manager,
-            activeDraftStore: InMemoryActiveWorkoutDraftStore(),
-            motionActivity: motionActivity
+            activeDraftStore: InMemoryActiveWorkoutDraftStore()
         )
         tracker.authorizationStatus = .authorizedWhenInUse
         tracker.state = .tracking
@@ -160,16 +155,19 @@ extension LocationTrackerSignalTests {
             location(
                 latitude: 41,
                 horizontalAccuracy: 10,
+                speed: 0,
                 timestamp: sessionStart.addingTimeInterval(1)
             ),
             location(
                 latitude: 41.000_25,
                 horizontalAccuracy: 10,
+                speed: 0,
                 timestamp: sessionStart.addingTimeInterval(13)
             ),
             location(
                 latitude: 40.999_75,
                 horizontalAccuracy: 10,
+                speed: 0,
                 timestamp: sessionStart.addingTimeInterval(25)
             )
         ]
@@ -200,11 +198,10 @@ extension LocationTrackerSignalTests {
     func testDiscardStopsAndClearsActiveWorkout() {
         let sessionStart = Date(timeIntervalSince1970: 1_000)
         let manager = SignalTestLocationManager()
-        let motionActivity = SignalTestMotionActivityClient()
         let draftStore = InMemoryActiveWorkoutDraftStore()
         manager.authorizationStatus = .authorizedWhenInUse
         let tracker = LocationTracker(
-            manager: manager, activeDraftStore: draftStore, motionActivity: motionActivity
+            manager: manager, activeDraftStore: draftStore
         )
         tracker.authorizationStatus = .authorizedWhenInUse
         tracker.state = .tracking
@@ -226,7 +223,6 @@ extension LocationTrackerSignalTests {
         XCTAssertNil(draftStore.draft)
         XCTAssertTrue(draftStore.didClear)
         XCTAssertEqual(manager.stopUpdatingLocationCalls, 1)
-        XCTAssertEqual(motionActivity.stopCalls, 1)
     }
 
     func testActiveWorkoutDraftPersistsLocationProgress() {
@@ -253,7 +249,6 @@ extension LocationTrackerSignalTests {
     func testRestoresActiveWorkoutDraftAndRestartsBackgroundUpdates() {
         let sessionStart = Date(timeIntervalSince1970: 1_000)
         let manager = SignalTestLocationManager()
-        let motionActivity = SignalTestMotionActivityClient()
         let draftStore = InMemoryActiveWorkoutDraftStore()
         let lastPoint = RoutePoint(
             location: location(latitude: 41.000_2, timestamp: sessionStart.addingTimeInterval(60)),
@@ -277,8 +272,7 @@ extension LocationTrackerSignalTests {
         manager.authorizationStatus = .authorizedWhenInUse
         let tracker = LocationTracker(
             manager: manager,
-            activeDraftStore: draftStore,
-            motionActivity: motionActivity
+            activeDraftStore: draftStore
         )
 
         let restored = tracker.restoreActiveWorkoutIfAvailable(now: sessionStart.addingTimeInterval(120))
@@ -293,7 +287,6 @@ extension LocationTrackerSignalTests {
         XCTAssertEqual(tracker.elapsed, 120, accuracy: 0.001)
         XCTAssertEqual(manager.startUpdatingLocationCalls, 1)
         XCTAssertTrue(manager.allowsBackgroundLocationUpdates)
-        XCTAssertEqual(motionActivity.startCalls, 1)
         XCTAssertEqual(tracker.gpsStatus, .finding)
         XCTAssertEqual(tracker.lastRawLocationUpdateAt, lastPoint.timestamp)
 
@@ -305,12 +298,12 @@ extension LocationTrackerSignalTests {
         XCTAssertTrue(tracker.route[1].startsNewSegment)
 
         tracker.discard()
-        XCTAssertEqual(motionActivity.stopCalls, 1)
     }
 
     private func location(
         latitude: Double,
         horizontalAccuracy: CLLocationAccuracy = 5,
+        speed: CLLocationSpeed = 1.2,
         timestamp: Date
     ) -> CLLocation {
         CLLocation(
@@ -320,7 +313,7 @@ extension LocationTrackerSignalTests {
             verticalAccuracy: 5,
             course: -1,
             courseAccuracy: -1,
-            speed: 1.2,
+            speed: speed,
             speedAccuracy: 0.2,
             timestamp: timestamp
         )

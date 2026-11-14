@@ -5,7 +5,6 @@ Please test the core walk and run flow:
 ## Workout Lifecycle
 
 - Wait for READY, then start, pause, resume, and finish a workout.
-- Allow Motion & Fitness access when prompted after starting a workout.
 - Walk outdoors with the screen locked for a minute or two. Unlock the phone,
   pause and walk briefly, then resume and keep walking. Finish and check that
   History includes the locked stretch and excludes the distance covered while paused.
@@ -23,8 +22,9 @@ Please test the core walk and run flow:
   screen locked, and confirm distance does not increase while elapsed time
   continues.
 - Test standing still both at the start and during a workout, then begin
-  walking. Confirm route and distance tracking continue from the existing anchor
-  without an immediate signal-loss warning.
+  walking. With continuous GPS updates, confirm route and distance tracking
+  continue from the existing anchor. After a GPS gap, confirm recording resumes
+  in a new segment without adding distance across the gap.
 - If GPS briefly becomes weak, confirm accepted points continue the existing
   route without a discontinuity.
 - If GPS is lost or interrupted, confirm recovery starts a new route segment
