@@ -139,47 +139,6 @@ final class LocationTrackerSignalTests: XCTestCase {
 }
 
 extension LocationTrackerSignalTests {
-    func testStationaryIndoorDriftDoesNotAccumulateDistance() {
-        let sessionStart = Date(timeIntervalSince1970: 1_000)
-        let manager = SignalTestLocationManager()
-        manager.authorizationStatus = .authorizedWhenInUse
-        let tracker = LocationTracker(
-            manager: manager,
-            activeDraftStore: InMemoryActiveWorkoutDraftStore()
-        )
-        tracker.authorizationStatus = .authorizedWhenInUse
-        tracker.state = .tracking
-        tracker.startDate = sessionStart
-
-        let locations = [
-            location(
-                latitude: 41,
-                horizontalAccuracy: 10,
-                speed: 0,
-                timestamp: sessionStart.addingTimeInterval(1)
-            ),
-            location(
-                latitude: 41.000_25,
-                horizontalAccuracy: 10,
-                speed: 0,
-                timestamp: sessionStart.addingTimeInterval(13)
-            ),
-            location(
-                latitude: 40.999_75,
-                horizontalAccuracy: 10,
-                speed: 0,
-                timestamp: sessionStart.addingTimeInterval(25)
-            )
-        ]
-
-        tracker.processLocationUpdates(locations, receivedAt: locations.last!.timestamp)
-
-        XCTAssertEqual(tracker.distance, 0, accuracy: 0.001)
-        XCTAssertEqual(tracker.route.count, 1)
-        XCTAssertTrue(tracker.route[0].startsNewSegment)
-        XCTAssertEqual(tracker.gpsStatus, .ready)
-    }
-
     func testTooShortWorkoutCanBeDetectedWithoutStopping() {
         let sessionStart = Date(timeIntervalSince1970: 1_000)
         let manager = SignalTestLocationManager()
@@ -303,7 +262,6 @@ extension LocationTrackerSignalTests {
     private func location(
         latitude: Double,
         horizontalAccuracy: CLLocationAccuracy = 5,
-        speed: CLLocationSpeed = 1.2,
         timestamp: Date
     ) -> CLLocation {
         CLLocation(
@@ -313,7 +271,7 @@ extension LocationTrackerSignalTests {
             verticalAccuracy: 5,
             course: -1,
             courseAccuracy: -1,
-            speed: speed,
+            speed: 1.2,
             speedAccuracy: 0.2,
             timestamp: timestamp
         )

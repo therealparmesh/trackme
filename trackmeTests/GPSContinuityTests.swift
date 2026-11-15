@@ -132,7 +132,7 @@ final class GPSContinuityTests: XCTestCase {
         XCTAssertEqual(tracker.gpsStatus, .lost)
         XCTAssertTrue(tracker.route.isEmpty)
         send(tracker, latitude: 41, seconds: 31, accuracy: 45)
-        XCTAssertTrue(tracker.route.isEmpty)
+        XCTAssertEqual(tracker.route.count, 1)
         send(tracker, latitude: 41, seconds: 35)
         XCTAssertEqual(tracker.route.count, 1)
         XCTAssertEqual(tracker.distance, 0)
@@ -176,6 +176,33 @@ final class GPSContinuityTests: XCTestCase {
 
         XCTAssertEqual(tracker.distance, 20)
         XCTAssertEqual(tracker.route.routeSegments.count, 2)
+    }
+
+    func testSlowWalkingRecordsDistanceWithContinuousFixes() {
+        let tracker = tracker()
+        for index in 0...30 {
+            let fix = CLLocation(
+                coordinate: CLLocationCoordinate2D(latitude: 41 + Double(index) / 111_053, longitude: -87),
+                altitude: 0, horizontalAccuracy: 5, verticalAccuracy: 5,
+                course: -1, courseAccuracy: -1, speed: 0.2, speedAccuracy: 0.05,
+                timestamp: start.addingTimeInterval(Double(index * 5))
+            )
+            tracker.processLocationUpdates([fix], receivedAt: fix.timestamp)
+        }
+        // The unsampled tail can be shorter than the 5 m recording interval.
+        XCTAssertEqual(tracker.distance, 30, accuracy: 5)
+        XCTAssertEqual(tracker.route.routeSegments.count, 1)
+        XCTAssertEqual(tracker.gpsStatus, .ready)
+    }
+
+    func testRecoveryRecordsWithModerateAccuracy() {
+        let tracker = tracker()
+        tracker.routeAnchorNotBefore = start.addingTimeInterval(10)
+        send(tracker, latitude: 41, seconds: 11, accuracy: 40)
+        send(tracker, latitude: 41.000_3, seconds: 26, accuracy: 40)
+        XCTAssertEqual(tracker.route.count, 2)
+        XCTAssertGreaterThan(tracker.distance, 30)
+        XCTAssertEqual(tracker.gpsStatus, .weak)
     }
 
     private func tracker() -> LocationTracker {

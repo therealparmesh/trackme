@@ -20,6 +20,7 @@ accounts, feeds, or clutter.
 - [App Store metadata](distribution/APP_STORE_METADATA.md)
 - [App review notes](distribution/APP_REVIEW_NOTES.md)
 - [TestFlight notes](distribution/TESTFLIGHT_NOTES.md)
+- [GPS recording policy and source review](GPS_REVIEW.md)
 
 ## Development
 

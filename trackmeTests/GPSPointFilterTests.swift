@@ -26,7 +26,7 @@ final class GPSPointFilterTests: XCTestCase {
         )
     }
 
-    func testTrackingRequiresAnAccurateAnchorForANewRouteSegment() {
+    func testTrackingUsesTheSameAccuracyLimitForANewSegment() {
         let sessionStart = Date(timeIntervalSince1970: 1_000)
         let weakAnchor = location(
             latitude: 41,
@@ -34,7 +34,7 @@ final class GPSPointFilterTests: XCTestCase {
             timestamp: sessionStart.addingTimeInterval(1)
         )
 
-        XCTAssertFalse(
+        XCTAssertTrue(
             GPSPointFilter.shouldAccept(
                 weakAnchor,
                 after: nil,
@@ -86,71 +86,29 @@ final class GPSPointFilterTests: XCTestCase {
         )
     }
 
-    func testTrackingRejectsDriftWithStationarySpeed() {
-        let sessionStart = Date(timeIntervalSince1970: 1_000)
-        let previous = location(
-            latitude: 41,
-            horizontalAccuracy: 10,
-            speed: 0.1,
-            speedAccuracy: 0.1,
-            timestamp: sessionStart.addingTimeInterval(1)
-        )
-        let drift = location(
-            latitude: 41.000_25,
-            horizontalAccuracy: 10,
-            speed: 0.1,
-            speedAccuracy: 0.1,
-            timestamp: sessionStart.addingTimeInterval(13)
-        )
-
-        XCTAssertFalse(
-            GPSPointFilter.shouldAccept(
-                drift,
-                after: previous,
-                sessionStart: sessionStart,
-                now: drift.timestamp
-            )
-        )
-    }
-
-    func testUnavailableSpeedUsesDisplacementOutsideAccuracyBounds() {
+    func testSamplingDoesNotDependOnReportedSpeed() {
         let start = Date(timeIntervalSince1970: 1_000)
-        let previous = location(latitude: 41, horizontalAccuracy: 5, timestamp: start)
-        let next = start.addingTimeInterval(10)
-        let drift = location(
-            latitude: 41.000_05, horizontalAccuracy: 5, speed: -1, speedAccuracy: -1, timestamp: next
-        )
-        let movement = location(
-            latitude: 41.000_15, horizontalAccuracy: 5, speed: -1, speedAccuracy: -1, timestamp: next
-        )
-
-        XCTAssertFalse(GPSPointFilter.shouldAccept(
-            drift, after: previous, sessionStart: start, now: next
-        ))
-        XCTAssertTrue(GPSPointFilter.shouldAccept(
-            movement, after: previous, sessionStart: start, now: next
-        ))
+        let previous = location(latitude: 41, horizontalAccuracy: 10, timestamp: start)
+        // Slow, stationary, uncertain and missing speed must not override the recorded path.
+        for (speed, accuracy) in [(0.2, 0.05), (0.0, 0.0), (1.2, 2.0), (-1.0, -1.0)] {
+            let next = location(
+                latitude: 41.000_1, horizontalAccuracy: 10,
+                speed: speed, speedAccuracy: accuracy, timestamp: start.addingTimeInterval(10)
+            )
+            XCTAssertTrue(GPSPointFilter.shouldAccept(
+                next, after: previous, sessionStart: start, now: next.timestamp
+            ))
+        }
     }
 
-    func testUncertainSpeedDoesNotSuppressClearWalkingDisplacement() {
+    func testSpatialSamplingAccumulatesFromLastRecordedPoint() {
         let start = Date(timeIntervalSince1970: 1_000)
         let anchor = location(latitude: 41, horizontalAccuracy: 5, timestamp: start)
-        let next = start.addingTimeInterval(15)
-        let walk = location(
-            latitude: 41.000_2, horizontalAccuracy: 5,
-            speed: 1.2, speedAccuracy: 2, timestamp: next
-        )
-        let jitter = location(
-            latitude: 41.000_05, horizontalAccuracy: 5,
-            speed: 1.2, speedAccuracy: 2, timestamp: next
-        )
+        let near = location(latitude: 41.000_03, horizontalAccuracy: 5, timestamp: start.addingTimeInterval(10))
+        let far = location(latitude: 41.000_06, horizontalAccuracy: 5, timestamp: start.addingTimeInterval(20))
 
-        XCTAssertTrue(GPSPointFilter.shouldAccept(
-            walk, after: anchor, sessionStart: start, now: next
-        ))
-        XCTAssertFalse(GPSPointFilter.shouldAccept(
-            jitter, after: anchor, sessionStart: start, now: next
-        ))
+        XCTAssertFalse(GPSPointFilter.shouldAccept(near, after: anchor, sessionStart: start, now: near.timestamp))
+        XCTAssertTrue(GPSPointFilter.shouldAccept(far, after: anchor, sessionStart: start, now: far.timestamp))
     }
 
     private func location(

@@ -19,8 +19,10 @@ Please test the core walk and run flow:
 - Before starting a workout, confirm a temporary location error disappears when
   an accurate fix restores READY.
 - Leave an active workout stationary for several minutes, including with the
-  screen locked, and confirm distance does not increase while elapsed time
-  continues.
+  screen locked, and note any distance added by GPS drift. Spatial sampling
+  suppresses movements below 5 meters but does not guarantee zero drift.
+- Walk slowly, including below 0.35 meters per second. Confirm distance continues
+  accumulating as displacement reaches the 5-meter recording interval.
 - Test standing still both at the start and during a workout, then begin
   walking. With continuous GPS updates, confirm route and distance tracking
   continue from the existing anchor. After a GPS gap, confirm recording resumes

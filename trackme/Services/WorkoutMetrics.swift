@@ -27,8 +27,8 @@ enum HorizontalDistanceCalculator {
 enum GPSPointFilter {
     private static let maximumReadyHorizontalAccuracy: CLLocationAccuracy = 25
     private static let maximumTrackingHorizontalAccuracy: CLLocationAccuracy = 50
-    private static let maximumSpeed: CLLocationSpeed = 12
-    private static let minimumMovementSpeed: CLLocationSpeed = 0.35
+    // OutRun uses a 5 m spatial sampling interval; see GPS_REVIEW.md for the tradeoff.
+    private static let minimumRecordingDistance: CLLocationDistance = 5
     private static let signalTimeout: TimeInterval = 20
     private static let readyFixLifetime: TimeInterval = 30
     private static let futureTimestampTolerance: TimeInterval = 5
@@ -44,20 +44,9 @@ enum GPSPointFilter {
             return false
         }
 
-        guard let previous else { return hasReadyAccuracy(location) }
-        let seconds = location.timestamp.timeIntervalSince(previous.timestamp)
-        guard seconds > 0 else { return false }
-
-        let distance = HorizontalDistanceCalculator.distance(from: previous, to: location)
-        let accuracyFloor = max(previous.horizontalAccuracy, location.horizontalAccuracy) * 0.5
-        guard distance >= max(4, accuracyFloor), distance / seconds < maximumSpeed else { return false }
-
-        if location.speed >= 0, location.speedAccuracy >= 0 {
-            if location.speed - location.speedAccuracy >= minimumMovementSpeed { return true }
-            if location.speed + location.speedAccuracy < minimumMovementSpeed { return false }
-        }
-        // Missing or uncertain speed must be supported by clear displacement.
-        return distance > previous.horizontalAccuracy + location.horizontalAccuracy
+        guard let previous else { return true }
+        guard location.timestamp > previous.timestamp else { return false }
+        return HorizontalDistanceCalculator.distance(from: previous, to: location) >= minimumRecordingDistance
     }
 
     static func isReadyFix(_ location: CLLocation, now: Date = .now) -> Bool {

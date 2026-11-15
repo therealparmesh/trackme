@@ -37,12 +37,15 @@ The Start button is disabled until a recent, accurate location fix is available.
 Before a workout starts, READY expires 30 seconds after that fix was measured,
 including when a cached fix arrives late. During a workout, trackme uses Core
 Location with the fitness activity type, continuous background updates, and
-automatic location pausing disabled. Location timestamps, horizontal accuracy,
-speed, and displacement filter stale fixes and small GPS drift. Each route
-segment begins from an accurate location anchor. Pauses and gaps of more than
-20 seconds between usable GPS measurements start new route segments so missing
-stretches do not inflate distance. Delayed batches of continuous GPS
-measurements remain connected.
+automatic location pausing disabled. Valid, chronological locations with reported
+horizontal accuracy within 50 meters can anchor or continue a route segment.
+Recording samples the path at a minimum displacement of 5 meters from the last
+recorded point, independent of reported speed. This permits slow walking and
+movement with unavailable or uncertain speed. GPS drift or plausible jumps can
+still affect the measured distance. Pauses and gaps of more than 20 seconds
+between usable GPS measurements start new route segments so missing stretches
+are not added to distance. Delayed batches of continuous GPS measurements remain
+connected.
 
 ## Payments
 
